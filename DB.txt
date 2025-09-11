@@ -1,0 +1,290 @@
+👤 Users
++----------------+--------------+-----------------------------------+
+| user_id        | SERIAL (PK)  | Unique user ID                    |
+| username       | VARCHAR      | Display name                      |
+| email          | VARCHAR      | Unique email                      |
+| password_hash  | TEXT         | Hashed password                   |
+| role           | VARCHAR      | "user" / "admin"                  |
+| created_at     | TIMESTAMP    | Registration date                 |
++----------------+--------------+-----------------------------------+
+
+🎬 Movies
++-------------------+--------------+-----------------------------------+
+| movie_id          | SERIAL (PK)  | Unique movie ID                   |
+| parent_movie_id   | INT (FK)     | NULL if original, else references |
+| title             | VARCHAR      | Movie title                       |
+| description       | TEXT         | Summary                           |
+| release_year      | INT          | Year of release                   |
+| language          | TEXT         | e.g. "English", "Hindi"           |
+| poster_url        | TEXT         | Vertical poster                   |
+| wide_poster_url   | TEXT         | Wide banner                       |
+| hash_code         | VARCHAR      | Encrypted code for download       |
+| is_premium        | BOOLEAN      | true = requires premium           |
++-------------------+--------------+-----------------------------------+
+
+📺 Series
++--------------------+--------------+--------------------------------------------+
+| series_id          | SERIAL (PK)  | Unique ID for series/season                |
+| parent_series_id   | INT (FK)     | NULL if original series, else references   |
+| title              | VARCHAR      | Title (e.g. "My Hero Academia S1")         |
+| description        | TEXT         | Summary                                    |
+| release_year       | INT          | Year of release                            |
+| language           | TEXT         | e.g. "Japanese", "English"                 |
+| is_animated        | BOOLEAN      | true = Anime, false = Web-series           |
+| poster_url         | TEXT         | Vertical poster                            |
+| wide_poster_url    | TEXT         | Wide banner                                | 
+| is_premium         | BOOLEAN      | true = requires premium                    |    
++--------------------+--------------+--------------------------------------------+
+
+🎞️ Episodes
++----------------+--------------+-----------------------------------+
+| episode_id     | SERIAL (PK)  | Unique episode ID                 |
+| series_id      | INT (FK)     | Belongs to a Series (season row)  |
+| episode_number | INT          | Episode number in the season      |
+| release_date   | DATE         | Air date                          |
+| hash_code      | VARCHAR      | Encrypted code for download       |
++----------------+--------------+-----------------------------------+
+
+🎭 Genres
++---------------+--------------+-----------------------------------+
+| genre_id      | SERIAL (PK)  | Unique genre ID                   |
+| name          | VARCHAR      | e.g. "Action", "Comedy", "Romance"|
++---------------+--------------+-----------------------------------+
+
+🎭 Movie ↔ Genre Mapping
++---------------+--------------+-----------------------------------+
+| movie_id      | INT (FK)     | Movie reference                   |
+| genre_id      | INT (FK)     | Genre reference                   |
++---------------+--------------+-----------------------------------+
+
+🎭 Series ↔ Genre Mapping
++---------------+--------------+-----------------------------------+
+| series_id     | INT (FK)     | Series reference                  |
+| genre_id      | INT (FK)     | Genre reference                   |
++---------------+--------------+-----------------------------------+
+
+🎭 Cast
++---------------+--------------+-----------------------------------+
+| cast_id       | SERIAL (PK)  | Unique cast member ID             |
+| name          | VARCHAR      | Actor/Actress name                |
+| movie_id      | INT (FK)     | NULL if not a movie               |
+| series_id     | INT (FK)     | NULL if not a series              |
++---------------+--------------+-----------------------------------+
+
+👍 Likes 
++---------------+--------------+-----------------------------------+
+| like_id       | SERIAL (PK)  | Unique like ID                    |
+| user_id       | INT (FK)     | Who liked                         |
+| movie_id      | INT (FK)     | NULL if not about a movie         |
+| series_id     | INT (FK)     | NULL if not about a series        |
+| created_at    | TIMESTAMP    | Date of like                      |
++---------------+--------------+-----------------------------------+
+
+💬 Comments
++---------------+--------------+-----------------------------------+
+| comment_id    | SERIAL (PK)  | Unique comment ID                 |
+| user_id       | INT (FK)     | Who commented                     |
+| movie_id      | INT (FK)     | NULL if not about a movie         |
+| series_id     | INT (FK)     | NULL if not about a series        |
+| episode_id    | INT (FK)     | NULL if not about an episode      |
+| parent_comment_id | INT (FK) | For nested replies (NULL if root) |
+| comment_text  | TEXT         | The comment                       |
+| created_at    | TIMESTAMP    | Date posted                       |
++---------------+--------------+-----------------------------------+
+
+📌 Requests
++----------------+--------------+-----------------------------------+
+| request_id     | SERIAL (PK)  | Unique request ID                 |
+| user_id        | INT (FK)     | Who requested                     |
+| title          | VARCHAR      | Requested title                   |
+| type           | VARCHAR      | "movie" or "series"               |
+| language       | TEXT         | Preferred language                |
+| status         | VARCHAR      | "fulfilled" / "unfulfilled"       |
+| requested_at   | TIMESTAMP    | Date of request                   |
+| fulfilled_at   | TIMESTAMP    | When it was added (NULL if not)   |
++----------------+--------------+-----------------------------------+
+
+Trending
++---------------+-------------------+----------------------------------+
+| trending_id   | SERIAL (PK)       | Unique ID for each trending slot |
+| content_id    | INT (FK)          | Links to movie_id or series_id   |
+| content_type  | ENUM(movie,series)| Tells whether movie or series    |
+| trending_type | ENUM(general,anime)| Which trending section it goes  |
+| position      | INT               | Order in trending list           |
+| video_url     | TEXT (NULL)       | (Optional) video for hero banner |
+| created_at    | TIMESTAMP DEFAULT now() | When it was added          |
+| expires_at    | TIMESTAMP (NULL)  | Until when it stays trending     |
++---------------+-------------------+----------------------------------+
+
+📌 Subscriptions
++----------------+--------------+--------------------------------------+
+| subscription_id| SERIAL (PK)  | Unique subscription ID               |
+| user_id        | INT (FK)     | User who owns the subscription       |
+| start_date     | TIMESTAMP    | Subscription start date              |
+| end_date       | TIMESTAMP    | Subscription end date                |
+| status         | VARCHAR      | "active", "canceled", "failed", etc. |
+| payment_method | VARCHAR      | e.g. "UPI", "GooglePay", "Stripe"    |
++----------------+--------------+--------------------------------------+
+
+💳 Payments
++------------------+-------------+--------------------------------------------+
+| payment_id       | SERIAL (PK) | Unique payment ID                          |
+| subscription_id  | INT (FK)    | References `subscriptions.subscription_id` |
+| user_id          | INT (FK)    | References `users.user_id`                 |
+| amount           | DECIMAL     | Amount paid                                |
+| payment_method   | VARCHAR     | `"UPI"`, `"GooglePay"`, `"Card"`, etc.     |
+| payment_date     | TIMESTAMP   | Date/time of payment                       |
+| status           | VARCHAR     | `"success"`, `"pending"`, `"failed"`       |
+| transaction_id   | VARCHAR     | Gateway-provided transaction reference     |
++------------------+-------------+--------------------------------------------+
+
+-- 👤 Users
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR NOT NULL,
+    email VARCHAR UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role VARCHAR DEFAULT 'user', -- 'user' or 'admin'
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 🎬 Movies
+CREATE TABLE movies (
+    movie_id SERIAL PRIMARY KEY,
+    parent_movie_id INT REFERENCES movies(movie_id) ON DELETE CASCADE,
+    title VARCHAR NOT NULL,
+    description TEXT,
+    release_year INT,
+    language TEXT,
+    poster_url TEXT,
+    wide_poster_url TEXT,
+    hash_code VARCHAR,
+    is_premium BOOLEAN DEFAULT FALSE
+);
+
+-- 📺 Series
+CREATE TABLE series (
+    series_id SERIAL PRIMARY KEY,
+    parent_series_id INT REFERENCES series(series_id) ON DELETE CASCADE,
+    title VARCHAR NOT NULL,
+    description TEXT,
+    release_year INT,
+    language TEXT,
+    is_animated BOOLEAN,
+    poster_url TEXT,
+    wide_poster_url TEXT,
+    is_premium BOOLEAN DEFAULT FALSE
+);
+
+-- 🎞️ Episodes
+CREATE TABLE episodes (
+    episode_id SERIAL PRIMARY KEY,
+    series_id INT REFERENCES series(series_id) ON DELETE CASCADE,
+    episode_number INT,
+    release_date DATE,
+    hash_code VARCHAR
+);
+
+-- 🎭 Genres
+CREATE TABLE genres (
+    genre_id SERIAL PRIMARY KEY,
+    name VARCHAR UNIQUE NOT NULL
+);
+
+-- 🎭 Movie ↔ Genre Mapping
+CREATE TABLE movie_genres (
+    movie_id INT REFERENCES movies(movie_id) ON DELETE CASCADE,
+    genre_id INT REFERENCES genres(genre_id) ON DELETE CASCADE,
+    PRIMARY KEY (movie_id, genre_id)
+);
+
+-- 🎭 Series ↔ Genre Mapping
+CREATE TABLE series_genres (
+    series_id INT REFERENCES series(series_id) ON DELETE CASCADE,
+    genre_id INT REFERENCES genres(genre_id) ON DELETE CASCADE,
+    PRIMARY KEY (series_id, genre_id)
+);
+
+-- 🎭 Cast
+CREATE TABLE casts (
+    cast_id SERIAL PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    movie_id INT REFERENCES movies(movie_id) ON DELETE CASCADE,
+    series_id INT REFERENCES series(series_id) ON DELETE CASCADE
+);
+
+-- 👍 Likes
+CREATE TABLE likes (
+    like_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    movie_id INT REFERENCES movies(movie_id) ON DELETE CASCADE,
+    series_id INT REFERENCES series(series_id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 💬 Comments
+CREATE TABLE comments (
+    comment_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    movie_id INT REFERENCES movies(movie_id) ON DELETE CASCADE,
+    series_id INT REFERENCES series(series_id) ON DELETE CASCADE,
+    episode_id INT REFERENCES episodes(episode_id) ON DELETE CASCADE,
+    parent_comment_id INT REFERENCES comments(comment_id) ON DELETE CASCADE,
+    comment_text TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 📌 Requests
+CREATE TABLE requests (
+    request_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    title VARCHAR NOT NULL,
+    type VARCHAR CHECK (type IN ('movie','series')),
+    language TEXT,
+    status VARCHAR DEFAULT 'unfulfilled',
+    requested_at TIMESTAMP DEFAULT NOW(),
+    fulfilled_at TIMESTAMP
+);
+
+-- 🔥 Trending
+CREATE TABLE trending (
+    trending_id SERIAL PRIMARY KEY,
+    content_id INT NOT NULL,
+    content_type VARCHAR CHECK (content_type IN ('movie','series')),
+    trending_type VARCHAR CHECK (trending_type IN ('general','anime')),
+    position INT,
+    video_url TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    expires_at TIMESTAMP
+);
+
+-- 📌 Subscriptions
+CREATE TABLE subscriptions (
+    subscription_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    start_date TIMESTAMP DEFAULT NOW(),
+    end_date TIMESTAMP,
+    status VARCHAR DEFAULT 'active',
+    payment_method VARCHAR
+);
+
+-- 💳 Payments
+CREATE TABLE payments (
+    payment_id SERIAL PRIMARY KEY,
+    subscription_id INT REFERENCES subscriptions(subscription_id) ON DELETE CASCADE,
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    amount DECIMAL,
+    payment_method VARCHAR,
+    payment_date TIMESTAMP DEFAULT NOW(),
+    status VARCHAR DEFAULT 'success',
+    transaction_id VARCHAR
+);
+
+🔹Token cleanup
+DELETE FROM email_verifications WHERE expires_at < NOW();
+DELETE FROM password_resets WHERE expires_at < NOW();
+
+
+This you should run regularly (e.g. daily or weekly).
+
+Otherwise expired tokens will pile up in your tables.
