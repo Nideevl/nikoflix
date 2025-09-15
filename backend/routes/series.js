@@ -29,19 +29,37 @@ const formatEpisodeId = (id) => `e_${id}`
 // GET all series or search by query
 router.get("/", async (req, res) => {
   try {
-    const { q } = req.query;
-    const result = q
-      ? await pool.query(
-          "SELECT series_id AS id, title, release_year, language, description, is_animated FROM series WHERE LOWER(title) LIKE LOWER($1) ORDER BY series_id DESC LIMIT 20",
-          [`${q.toLowerCase()}%`]
-        )
-      : await pool.query("SELECT series_id AS id, title, release_year, language, description, is_animated FROM series ORDER BY series_id DESC LIMIT 20");
+    const { q, is_animated } = req.query;
+    let query = "SELECT series_id AS id, title, release_year, language, description, is_animated, poster_url FROM series";
+    let params = [];
+    let whereClauses = [];
+    let paramCount = 0;
+
+    if (q) {
+      paramCount++;
+      whereClauses.push(`LOWER(title) LIKE LOWER($${paramCount})`);
+      params.push(`${q.toLowerCase()}%`);
+    }
+
+    if (is_animated !== undefined) {
+      paramCount++;
+      whereClauses.push(`is_animated = $${paramCount}`);
+      params.push(is_animated === "true");
+    }
+
+    if (whereClauses.length > 0) {
+      query += " WHERE " + whereClauses.join(" AND ");
+    }
+
+    query += " ORDER BY series_id DESC LIMIT 20";
+
+    const result = await pool.query(query, params);
 
     // Format the IDs in the response
     const formattedRows = result.rows.map(row => ({
       ...row,
       id: formatSeriesId(row.id)
-    }))
+    }));
     
     res.json(formattedRows);
   } catch (err) {

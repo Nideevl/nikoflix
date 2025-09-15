@@ -1,6 +1,6 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { GoogleOAuthProvider } from "@react-oauth/google"
 import "./global.css"
 
@@ -12,6 +12,8 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx"
 import ResetPasswordPage from "./pages/ResetPasswordPage.jsx"
 import TrendingUploadPage from "./pages/TrendingUploadPage.jsx"
 import AdminRoute from "./routes/AdminRoute.jsx"
+import MainLayout from "./components/MainLayout.jsx"
+import SearchPage from "./pages/SearchPage.jsx"
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
@@ -20,6 +22,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <GoogleOAuthProvider clientId={clientId}>
       <BrowserRouter>
         <Routes>
+          {/* Redirect root to /browse */}
+          <Route path="/" element={<Navigate to="/browse" replace />} />
+
           {/* Auth Routes */}
           <Route path="/auth/login" element={<LoginPage />} />
           <Route path="/auth/register" element={<RegisterPage />} />
@@ -28,7 +33,22 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
 
           {/* User Routes */}
-          <Route path="/browse" element={<BrowsePage />} />
+          <Route
+            path="/browse"
+            element={
+              <MainLayout>
+                <BrowsePage />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/search"
+            element={
+              <MainLayout>
+                <SearchPage />
+              </MainLayout>
+            }
+          />
 
           {/* Admin Routes (protected) */}
           <Route
