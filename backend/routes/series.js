@@ -30,7 +30,7 @@ const formatEpisodeId = (id) => `e_${id}`
 router.get("/", async (req, res) => {
   try {
     const { q, is_animated } = req.query;
-    let query = "SELECT series_id AS id, title, release_year, language, description, is_animated, poster_url FROM series";
+    let query = "SELECT series_id AS id, title, release_year, language, description, is_animated, poster_url, wide_poster_url FROM series";
     let params = [];
     let whereClauses = [];
     let paramCount = 0;

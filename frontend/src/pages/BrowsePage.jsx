@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
+import ContentCard from "../components/ContentCard"
 
 export default function BrowsePage() {
   const [searchParams] = useSearchParams()
@@ -114,22 +115,12 @@ export default function BrowsePage() {
             <h2 className="text-xl font-bold">{row.title}</h2>
             <div className="flex space-x-4 overflow-x-scroll scrollbar-hide">
               {row.content.map((item) => (
-                <div
+                <ContentCard
                   key={item.id}
-                  className="w-40 h-60 flex-shrink-0 rounded-lg bg-gray-800 overflow-hidden transform transition-transform hover:scale-110 cursor-pointer"
-                >
-                  {item.poster_url ? (
-                    <img
-                      src={item.poster_url}
-                      alt={item.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-sm text-gray-400">No image</span>
-                    </div>
-                  )}
-                </div>
+                  item={item}
+                  showType={contentType !== "movies"}
+                  className="w-40 h-60 flex-shrink-0 transform transition-transform hover:scale-110"
+                />
               ))}
             </div>
           </div>

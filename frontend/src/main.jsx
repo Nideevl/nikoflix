@@ -11,6 +11,8 @@ import VerifyEmailPage from "./pages/VerifyEmailPage.jsx"
 import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx"
 import ResetPasswordPage from "./pages/ResetPasswordPage.jsx"
 import TrendingUploadPage from "./pages/TrendingUploadPage.jsx"
+import UploadPage from "./pages/UploadPage.jsx"
+import UpdatePage from "./pages/UpdatePage.jsx" // Add this import
 import AdminRoute from "./routes/AdminRoute.jsx"
 import MainLayout from "./components/MainLayout.jsx"
 import SearchPage from "./pages/SearchPage.jsx"
@@ -56,6 +58,22 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             element={
               <AdminRoute>
                 <TrendingUploadPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/uploads"
+            element={
+              <AdminRoute>
+                <UploadPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/update"
+            element={
+              <AdminRoute>
+                <UpdatePage />
               </AdminRoute>
             }
           />

@@ -29,10 +29,10 @@ router.get("/", async (req, res) => {
     const { q } = req.query
     const result = q
       ? await pool.query(
-          "SELECT movie_id AS id, title, release_year, language, description FROM movies WHERE LOWER(title) LIKE LOWER($1) ORDER BY movie_id DESC LIMIT 20",
+          "SELECT movie_id AS id, title, release_year, poster_url, wide_poster_url, language, description FROM movies WHERE LOWER(title) LIKE LOWER($1) ORDER BY movie_id DESC LIMIT 20",
           [`${q.toLowerCase()}%`]
         )
-      : await pool.query("SELECT movie_id AS id, title, release_year, language, description FROM movies ORDER BY movie_id DESC LIMIT 20")
+      : await pool.query("SELECT movie_id AS id, title, poster_url, wide_poster_url, release_year, language, description FROM movies ORDER BY movie_id DESC LIMIT 20")
 
     // Format the IDs in the response
     const formattedRows = result.rows.map(row => ({
