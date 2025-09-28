@@ -15,6 +15,7 @@ import adminRoutes from "./routes/admin.js";
 import { verifyToken, isAdmin } from "./middleware/auth.js";
 import subscriptionsRoutes from "./routes/subscriptions.js";
 import paymentsRoutes from "./routes/payments.js";
+import cloudinaryRoutes from "./routes/cloudinary.js"
 
 dotenv.config();
 const { Pool } = pkg;
@@ -37,7 +38,8 @@ app.use("/api/payments", paymentsRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/trending", trendingRoutes);
 app.use("/api/movies", moviesRoutes);
-app.use("/api/series", seriesRoutes);
+app.use("/api/series", seriesRoutes); 
+app.use("/api/cloudinary", cloudinaryRoutes)
 app.use("/api/requests", requestsRoutes);
 
 // Database connection

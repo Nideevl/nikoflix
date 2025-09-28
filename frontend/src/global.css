@@ -4,14 +4,14 @@
 
 /* Enhanced Dark Theme Variables */
 :root {
-  --netflix-red: #e50914;
-  --netflix-dark-red: #b20710;
-  --netflix-black: #141414;
-  --netflix-dark-gray: #1f1f1f;
-  --netflix-gray: #333333;
-  --netflix-light-gray: #564d4d;
-  --netflix-white: #ffffff;
-  --netflix-off-white: #f5f5f1;
+  --nikoflix-red: #e50914;
+  --nikoflix-dark-red: #b20710;
+  --nikoflix-black: #141414;
+  --nikoflix-dark-gray: #1f1f1f;
+  --nikoflix-gray: #333333;
+  --nikoflix-light-gray: #564d4d;
+  --nikoflix-white: #ffffff;
+  --nikoflix-off-white: #f5f5f1;
 
   /* Enhanced color palette */
   --background: oklch(1 0 0);
@@ -136,7 +136,7 @@
   }
 }
 
-/* Enhanced Netflix Logo Styling */
+/* Enhanced NIKOFLIX Logo Styling */
 .nikoflix-logo {
   font-family: "Bebas Neue", sans-serif;
   font-size: 3.5rem;
@@ -225,7 +225,7 @@
 }
 
 /* Enhanced Button Styling */
-.netflix-button {
+.nikoflix-button {
   background: linear-gradient(135deg, #e50914 0%, #b20710 100%);
   border: none;
   position: relative;
@@ -234,7 +234,7 @@
   box-shadow: 0 4px 15px rgba(229, 9, 20, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-.netflix-button::before {
+.nikoflix-button::before {
   content: "";
   position: absolute;
   top: 0;
@@ -245,11 +245,11 @@
   transition: left 0.5s ease;
 }
 
-.netflix-button:hover::before {
+.nikoflix-button:hover::before {
   left: 100%;
 }
 
-.netflix-button:active {
+.nikoflix-button:active {
   transform: translateY(0);
 }
 
@@ -352,4 +352,13 @@
     font-size: 2.5rem;
     letter-spacing: 2px;
   }
+}
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }

@@ -79,7 +79,7 @@ router.post("/register", async (req, res) => {
 
     // Send verification email
     await transporter.sendMail({
-      from: `"Nikoflix" <${process.env.EMAIL_USER}>`,
+      from: `"NIKOFLIX" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Verify your email",
       html: `<p>Hello ${username},</p>
@@ -226,7 +226,7 @@ router.post("/forgot-password", async (req, res) => {
     const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
 
     await transporter.sendMail({
-      from: `"Nikoflix" <${process.env.EMAIL_USER}>`,
+      from: `"NIKOFLIX" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Password Reset",
       html: `<p>Hello,</p>

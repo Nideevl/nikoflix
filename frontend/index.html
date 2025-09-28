@@ -1,13 +1,209 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slider with Next and Prev Buttons</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      padding: 30px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      padding: 25px;
+      margin-bottom: 30px;
+    }
+
+    .slider-container {
+      width: 695px;
+      height: 150px;
+      overflow: hidden;
+      margin: 0 auto 20px;
+      border: 1px solid #e1e8ed;
+      border-radius: 10px;
+      background: #f8f9fa;
+      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+      position: relative;
+    }
+
+    .sliderContent {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 10px;
+      padding: 10px 20px;
+      height: 100%;
+      width: fit-content;
+      transition: transform 5s ease;
+    }
+
+    .slider-item {
+      flex: 0 0 auto;
+      width: 100px;
+      height: 100px;
+      border: 2px solid #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(145deg, #ffffff, #f0f0f0);
+      border-radius: 8px;
+      font-weight: 600;
+      color: #444;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+    }
+
+    .slider-item:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.12);
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      margin: 25px 0;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 12px 25px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: linear-gradient(to right, #3498db, #2980b9);
+      color: white;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    #prevBtn {
+      background: linear-gradient(to right, #9b59b6, #8e44ad);
+      display: none; /* Initially hidden */
+    }
+
+    #nextBtn {
+      background: linear-gradient(to right, #e74c3c, #c0392b);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <div class="slider-container">
+      <div class="sliderContent" id="sliderContainer">
+        <!-- Content will be populated by JavaScript -->
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="nextBtn">Next</button>
+      <button id="prevBtn">Prev</button>
+    </div>
+
+    <script>
+      const items = Array.from({ length: 36 }, (_, i) => i + 1);
+
+      let navIndex = 0;
+      let hasClickedNext = false;
+
+      // Keep track of translate offset
+      let translateOffset = 0;
+
+      // Keep track of margin offset
+      let marginOffset = 0;
+      let isFirstShiftClick = true;
+
+      function renderSlider() {
+        const container = document.getElementById('sliderContainer');
+        container.innerHTML = '';
+
+        if (!hasClickedNext) {
+          for (let i = 0; i < 13; i++) {
+            const itemIndex = (navIndex + i) % items.length;
+            const div = createCard(itemIndex);
+            container.appendChild(div);
+          }
+        } else {
+          const startIndex = (navIndex - 7 + items.length) % items.length;
+          for (let i = 0; i < 19; i++) {
+            const itemIndex = (startIndex + i) % items.length;
+            const div = createCard(itemIndex);
+            container.appendChild(div);
+          }
+        }
+      }
+
+      function createCard(itemIndex) {
+        const div = document.createElement('div');
+        div.className = 'slider-item';
+        div.textContent = `item[${items[itemIndex] - 1}]`;
+        div.dataset.index = itemIndex;
+        return div;
+      }
+
+      // Next button - combines Next + Shift Left + TranslateX
+      document.getElementById('nextBtn').addEventListener('click', function () {
+        const sliderContent = document.getElementById('sliderContainer');
+
+        // 1. Next button functionality
+        hasClickedNext = true;
+        navIndex = (navIndex + 6) % items.length;
+        document.getElementById('prevBtn').style.display = 'inline-block';
+        renderSlider();
+
+        // 2. Shift button functionality
+        if (isFirstShiftClick) {
+          marginOffset -= 110;
+          isFirstShiftClick = false;
+        } else {
+          marginOffset += 660;
+        }
+        sliderContent.style.marginLeft = marginOffset + "px";
+
+        // 3. Translate button functionality
+        translateOffset -= 660; // move left by 660 each click
+        sliderContent.style.transform = `translateX(${translateOffset}px)`;
+      });
+
+      // Prev button - combines Previous button functionality with offset changes
+      document.getElementById('prevBtn').addEventListener('click', function () {
+        const sliderContent = document.getElementById('sliderContainer');
+        
+        // 1. Previous button functionality
+        navIndex = (navIndex - 6 + items.length) % items.length;
+        renderSlider();
+        
+        // 2. Apply the modified offsets
+        marginOffset -= 660;
+        translateOffset += 660;
+        
+        sliderContent.style.marginLeft = marginOffset + "px";
+        sliderContent.style.transform = `translateX(${translateOffset}px)`;
+      });
+
+      renderSlider();
+    </script>
+</body>
+
 </html>

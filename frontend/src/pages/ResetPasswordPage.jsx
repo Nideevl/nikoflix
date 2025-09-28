@@ -33,7 +33,7 @@ export default function ResetPasswordPage() {
           Create a new password
         </h2>
         <p className="text-gray-400 text-sm">
-          Pick a strong password you haven’t used before on Nikoflix. 
+          Pick a strong password you haven’t used before on NIKOFLIX. 
           This helps keep your account safe and secure.
         </p>
       </div>
@@ -50,7 +50,7 @@ export default function ResetPasswordPage() {
 
         <button
           type="submit"
-          className="w-full netflix-button text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
+          className="w-full nikoflix-button text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
         >
           Update Password
         </button>

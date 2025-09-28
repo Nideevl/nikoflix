@@ -67,7 +67,7 @@ export default function Navbar() {
       <div className="flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center space-x-8">
-          <h1 className="text-red-600 text-2xl font-bold">NETFLIX</h1>
+          <h1 className="text-red-600 text-2xl font-bold">NIKOFLIX</h1>
           
           {/* Navigation Links */}
           <div className="hidden md:flex space-x-6">

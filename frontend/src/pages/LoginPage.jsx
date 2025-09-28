@@ -133,7 +133,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full netflix-button text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 ${
+                className={`w-full nikoflix-button text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 ${
                   isLoading ? "loading-shimmer cursor-not-allowed opacity-80" : ""
                 }`}
               >

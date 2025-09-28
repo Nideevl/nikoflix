@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect } from "react"
 import axios from "axios"
 
+const CLOUDINARY_WIDGET_URL = "https://widget.cloudinary.com/v2.0/global/all.js"
+
 export default function UpdatePage() {
   const [searchType, setSearchType] = useState("movies")
   const [searchQuery, setSearchQuery] = useState("")
@@ -11,11 +13,36 @@ export default function UpdatePage() {
   const [form, setForm] = useState({})
   const [message, setMessage] = useState("")
   const [isSearching, setIsSearching] = useState(false)
+  const [episodes, setEpisodes] = useState([])
+  const [newEpisode, setNewEpisode] = useState({
+    episode_number: "",
+    release_date: "",
+    hash_code: "",
+    status: "Sub",
+    duration: ""
+  })
+  const [widgetReady, setWidgetReady] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadType, setUploadType] = useState("")
 
   const API_BASE = useMemo(
     () => import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "http://localhost:5000/api",
     []
   )
+  const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+  const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_PRESET
+
+  useEffect(() => {
+    if (window.cloudinary) {
+      setWidgetReady(true)
+    } else {
+      const script = document.createElement("script")
+      script.src = CLOUDINARY_WIDGET_URL
+      script.async = true
+      script.onload = () => setWidgetReady(true)
+      document.head.appendChild(script)
+    }
+  }, [])
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -26,9 +53,19 @@ export default function UpdatePage() {
 
     setIsSearching(true)
     try {
-      const endpoint = searchType === "movies" ? "movies" : "series"
+      let endpoint = "movies"
+      let params = { q: searchQuery.trim() }
+      
+      if (searchType === "series") {
+        endpoint = "series"
+      } else if (searchType === "anime") {
+        endpoint = "series"
+        params.is_animated = true
+      }
+
       const response = await axios.get(
-        `${API_BASE}/${endpoint}?q=${encodeURIComponent(searchQuery.trim())}`
+        `${API_BASE}/${endpoint}`,
+        { params }
       )
       setSearchResults(response.data)
       setMessage(`Found ${response.data.length} results`)
@@ -49,7 +86,7 @@ export default function UpdatePage() {
     return () => clearTimeout(delayDebounce)
   }, [searchQuery, searchType])
 
-  const selectItem = (item) => {
+  const selectItem = async (item) => {
     setSelectedItem(item)
     setForm({
       title: item.title || "",
@@ -63,6 +100,20 @@ export default function UpdatePage() {
       duration: item.duration || null,
       is_animated: item.is_animated || false,
     })
+
+    // If it's a series or anime, load episodes
+    if (searchType === "series" || searchType === "anime") {
+      try {
+        const id = item.id || item.series_id
+        const response = await axios.get(`${API_BASE}/series/${id}`)
+        setEpisodes(response.data.episodes || [])
+      } catch (err) {
+        console.error("Error loading episodes:", err)
+        setEpisodes([])
+      }
+    } else {
+      setEpisodes([])
+    }
   }
 
   const handleChange = (e) => {
@@ -71,6 +122,165 @@ export default function UpdatePage() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }))
+  }
+
+  const handleEpisodeChange = (e) => {
+    const { name, value } = e.target
+    setNewEpisode((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleUpload = (type) => {
+    if (!widgetReady || !window.cloudinary) {
+      alert("Cloudinary widget not ready yet")
+      return
+    }
+    if (!CLOUD_NAME || !UPLOAD_PRESET) {
+      alert("Missing Cloudinary env vars")
+      return
+    }
+
+    setUploadType(type)
+    setIsUploading(true)
+    
+    const widget = window.cloudinary.createUploadWidget(
+      {
+        cloudName: CLOUD_NAME,
+        uploadPreset: UPLOAD_PRESET,
+        sources: ["local", "url", "camera"],
+        resourceType: "image",
+        multiple: false,
+        theme: "minimal",
+        cropping: false
+      },
+      (error, result) => {
+        if (error) {
+          console.error(error)
+          setMessage("Upload failed ❌")
+          setIsUploading(false)
+          return
+        }
+        if (result?.event === "success") {
+          const url = result.info?.secure_url
+          if (type === "poster") {
+            setForm((prev) => ({ ...prev, poster_url: url || "" }))
+          } else if (type === "wide_poster") {
+            setForm((prev) => ({ ...prev, wide_poster_url: url || "" }))
+          }
+          setMessage(`${type.replace('_', ' ')} uploaded ✅`)
+          setIsUploading(false)
+        }
+        if (result?.event === "close") {
+          setIsUploading(false)
+        }
+      }
+    )
+    widget.open()
+  }
+
+const deleteImage = async (type) => {
+  if (!window.confirm(`Are you sure you want to delete this ${type.replace('_', ' ')}?`)) return;
+
+  try {
+    const token = localStorage.getItem("token");
+    const url = type === "poster" ? form.poster_url : form.wide_poster_url;
+    
+    if (!url) {
+      setMessage("No image URL found");
+      return;
+    }
+
+    // Get content info for specific deletion
+    const content_type = searchType === "movies" ? "movies" : "series";
+    const content_id = selectedItem.id || selectedItem.movie_id || selectedItem.series_id;
+
+    console.log("🔄 Deleting image with:", { content_type, content_id, url });
+
+    // Single API call that handles both Cloudinary and database
+    const response = await axios.delete(
+      `${API_BASE}/cloudinary/delete-image`,
+      {
+        data: { 
+          image_url: url,
+          content_type: content_type,
+          content_id: content_id
+        },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }
+    );
+
+    console.log("✅ Delete response:", response.data);
+
+    // Update local form state
+    if (type === "poster") {
+      setForm((prev) => ({ ...prev, poster_url: "" }));
+    } else {
+      setForm((prev) => ({ ...prev, wide_poster_url: "" }));
+    }
+
+    // Refresh the item to get updated data from database
+    await selectItem(selectedItem);
+
+    setMessage(`${type.replace('_', ' ')} deleted successfully ✅`);
+  } catch (err) {
+    console.error("Delete image error:", err);
+    setMessage(`Error deleting ${type.replace('_', ' ')} ❌: ${err.response?.data?.error || err.message}`);
+  }
+};
+
+  const addEpisode = async () => {
+    if (!selectedItem || !newEpisode.episode_number || !newEpisode.hash_code) {
+      setMessage("Episode number and hash code are required")
+      return
+    }
+
+    try {
+      const token = localStorage.getItem("token")
+      const id = selectedItem.id || selectedItem.series_id
+      const response = await axios.post(
+        `${API_BASE}/series/${id}/episodes`,
+        newEpisode,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      )
+
+      setEpisodes([...episodes, response.data])
+      setNewEpisode({
+        episode_number: "",
+        release_date: "",
+        hash_code: "",
+        status: "Sub",
+        duration: ""
+      })
+      setMessage("Episode added successfully ✅")
+    } catch (err) {
+      console.error(err)
+      setMessage(err?.response?.data?.error || "Error adding episode ❌")
+    }
+  }
+
+  const deleteEpisode = async (episodeId) => {
+    if (!window.confirm("Are you sure you want to delete this episode?")) return
+
+    try {
+      const token = localStorage.getItem("token")
+      console.log("id=",episodeId)
+      await axios.delete(
+        `${API_BASE}/cloudinary/delete-image/${episodeId}`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      )
+
+      setEpisodes(episodes.filter(ep => ep.episode_id !== episodeId))
+      setMessage("Episode deleted successfully ✅")
+    } catch (err) {
+      console.error(err)
+      setMessage(err?.response?.data?.error || "Error deleting episode ❌")
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -140,7 +350,7 @@ export default function UpdatePage() {
                 <button
                   type="button"
                   className={`px-4 py-2 rounded ${searchType === "anime" ? "bg-red-600" : "bg-gray-700"}`}
-                  onClick={() => setSearchType("series")}
+                  onClick={() => setSearchType("anime")}
                 >
                   Anime
                 </button>
@@ -293,7 +503,7 @@ export default function UpdatePage() {
                 </>
               )}
 
-              {searchType === "series" && (
+              {(searchType === "series" || searchType === "anime") && (
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -323,27 +533,82 @@ export default function UpdatePage() {
                 </label>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Poster Image Section */}
+              <div className="space-y-4">
                 <div>
-                  <label className="block mb-2 text-sm font-medium">Poster URL</label>
-                  <input
-                    type="text"
-                    name="poster_url"
-                    value={form.poster_url}
-                    onChange={handleChange}
-                    className="w-full p-3 rounded bg-gray-800 text-white"
-                  />
+                  <label className="block mb-2 text-sm font-medium">Poster Image</label>
+                  {form.poster_url ? (
+                    <div className="relative">
+                      <img
+                        src={form.poster_url}
+                        alt="Poster preview"
+                        className="w-32 h-48 object-cover rounded border border-gray-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => deleteImage("poster")}
+                        className="absolute top-0 right-0 bg-red-600 text-white p-1 rounded-full"
+                        title="Delete poster"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleUpload("poster")}
+                      disabled={!widgetReady || isUploading}
+                      className={`w-full px-4 py-3 rounded font-medium ${
+                        isUploading && uploadType === "poster" 
+                          ? "bg-gray-700 cursor-not-allowed" 
+                          : "bg-red-600 hover:bg-red-700"
+                      }`}
+                    >
+                      {isUploading && uploadType === "poster" 
+                        ? "Uploading..." 
+                        : "Upload Poster"}
+                    </button>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-sm font-medium">Wide Poster URL</label>
-                  <input
-                    type="text"
-                    name="wide_poster_url"
-                    value={form.wide_poster_url}
-                    onChange={handleChange}
-                    className="w-full p-3 rounded bg-gray-800 text-white"
-                  />
+                  <label className="block mb-2 text-sm font-medium">Wide Poster Image (Optional)</label>
+                  {form.wide_poster_url ? (
+                    <div className="relative">
+                      <img
+                        src={form.wide_poster_url}
+                        alt="Wide poster preview"
+                        className="w-full h-32 object-cover rounded border border-gray-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => deleteImage("wide_poster")}
+                        className="absolute top-0 right-0 bg-red-600 text-white p-1 rounded-full"
+                        title="Delete wide poster"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleUpload("wide_poster")}
+                      disabled={!widgetReady || isUploading}
+                      className={`w-full px-4 py-3 rounded font-medium ${
+                        isUploading && uploadType === "wide_poster" 
+                          ? "bg-gray-700 cursor-not-allowed" 
+                          : "bg-red-600 hover:bg-red-700"
+                      }`}
+                    >
+                      {isUploading && uploadType === "wide_poster" 
+                        ? "Uploading..." 
+                        : "Upload Wide Poster"}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -354,6 +619,107 @@ export default function UpdatePage() {
                 Update Content
               </button>
             </form>
+          )}
+
+          {/* Episode Management for Series/Anime */}
+          {(searchType === "series" || searchType === "anime") && selectedItem && (
+            <div className="mt-8 pt-6 border-t border-gray-700">
+              <h3 className="text-lg font-semibold mb-4">Episodes</h3>
+              
+              {/* Add Episode Form */}
+              <div className="bg-gray-800 p-4 rounded-lg mb-4">
+                <h4 className="font-medium mb-3">Add New Episode</h4>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="block mb-1 text-sm">Episode Number</label>
+                    <input
+                      type="number"
+                      name="episode_number"
+                      value={newEpisode.episode_number}
+                      onChange={handleEpisodeChange}
+                      className="w-full p-2 rounded bg-gray-700 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm">Status</label>
+                    <select
+                      name="status"
+                      value={newEpisode.status}
+                      onChange={handleEpisodeChange}
+                      className="w-full p-2 rounded bg-gray-700 text-white"
+                    >
+                      <option value="Sub">Sub</option>
+                      <option value="Dub">Dub</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm">Release Date</label>
+                    <input
+                      type="date"
+                      name="release_date"
+                      value={newEpisode.release_date}
+                      onChange={handleEpisodeChange}
+                      className="w-full p-2 rounded bg-gray-700 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm">Duration (min)</label>
+                    <input
+                      type="number"
+                      name="duration"
+                      value={newEpisode.duration}
+                      onChange={handleEpisodeChange}
+                      className="w-full p-2 rounded bg-gray-700 text-white"
+                    />
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1 text-sm">Hash Code/URL</label>
+                  <input
+                    type="text"
+                    name="hash_code"
+                    value={newEpisode.hash_code}
+                    onChange={handleEpisodeChange}
+                    className="w-full p-2 rounded bg-gray-700 text-white"
+                    placeholder="Enter hash code or URL"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={addEpisode}
+                  className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
+                >
+                  Add Episode
+                </button>
+              </div>
+
+              {/* Episode List */}
+              {episodes.length > 0 ? (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {episodes.map((episode) => (
+                    <div key={episode.episode_id} className="bg-gray-800 p-3 rounded flex justify-between items-center">
+                      <div>
+                        <div className="font-medium">Episode {episode.episode_number} ({episode.status})</div>
+                        <div className="text-sm text-gray-400">
+                          {episode.release_date} • {episode.duration || 'N/A'} min
+                        </div>
+                        <div className="text-xs text-gray-500 truncate max-w-xs">
+                          {episode.hash_code}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => deleteEpisode(episode.episode_id)}
+                        className="px-3 py-1 bg-red-600 rounded text-sm hover:bg-red-700"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-400 text-center py-4">No episodes added yet</p>
+              )}
+            </div>
           )}
         </div>
       </div>

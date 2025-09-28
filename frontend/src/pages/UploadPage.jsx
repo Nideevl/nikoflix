@@ -26,6 +26,9 @@ export default function UploadPage() {
   const [uploadType, setUploadType] = useState("poster") // poster, wide_poster
   const [recentContent, setRecentContent] = useState([])
   const [activeTab, setActiveTab] = useState("movies")
+  const [episodeJson, setEpisodeJson] = useState("")
+  const [parsedEpisodes, setParsedEpisodes] = useState([])
+  const [isUploadingEpisodes, setIsUploadingEpisodes] = useState(false)
 
   const API_BASE = useMemo(
     () => import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "http://localhost:5000/api",
@@ -84,11 +87,7 @@ export default function UploadPage() {
         resourceType: "image",
         multiple: false,
         theme: "minimal",
-        cropping: true,
-        croppingAspectRatio: type === "poster" ? 2/3 : 16/9,
-        showSkipCropButton: false,
-        croppingDefaultSelectionRatio: 100/100,
-        croppingShowDimensions: true
+        cropping: false,
       },
       (error, result) => {
         if (error) {
@@ -113,6 +112,65 @@ export default function UploadPage() {
       }
     )
     widget.open()
+  }
+
+  const handleJsonUpload = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      try {
+        const jsonContent = event.target.result
+        setEpisodeJson(jsonContent)
+        
+        const episodesData = JSON.parse(jsonContent)
+        const formattedEpisodes = episodesData.map(ep => ({
+          episode_number: parseInt(ep.ep),
+          hash_code: ep.key,
+          status: ep.status || 'Sub',
+          release_date: new Date().toISOString().split('T')[0] // Default to today
+        }))
+        
+        setParsedEpisodes(formattedEpisodes)
+        setMessage(`✅ Parsed ${formattedEpisodes.length} episodes`)
+      } catch (err) {
+        console.error(err)
+        setMessage("❌ Invalid JSON file")
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const uploadEpisodes = async (seriesId) => {
+    if (parsedEpisodes.length === 0) {
+      setMessage("No episodes to upload")
+      return
+    }
+
+    setIsUploadingEpisodes(true)
+    try {
+      const token = localStorage.getItem("token")
+      const parsedId = seriesId.replace('s_', '') // Remove prefix if present
+      
+      await axios.post(`${API_BASE}/series/${parsedId}/episodes/bulk`, {
+        episodes: parsedEpisodes
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+
+      setMessage(`✅ ${parsedEpisodes.length} episodes uploaded successfully`)
+      setEpisodeJson("")
+      setParsedEpisodes([])
+      
+      // Reload recent content to show updated series
+      loadRecentContent()
+    } catch (err) {
+      console.error(err)
+      setMessage(err?.response?.data?.error || "Error uploading episodes ❌")
+    } finally {
+      setIsUploadingEpisodes(false)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -147,12 +205,18 @@ export default function UploadPage() {
       // Remove content_type from payload as it's not in the database
       delete payload.content_type
 
-      await axios.post(`${API_BASE}/${endpoint}`, payload, {
+      const response = await axios.post(`${API_BASE}/${endpoint}`, payload, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
 
       setMessage(`${form.content_type} created successfully ✅`)
       
+      // If we have episodes to upload and it's a series/anime
+      if ((form.content_type === "series" || form.content_type === "anime") && parsedEpisodes.length > 0) {
+        const seriesId = response.data.series_id
+        await uploadEpisodes(seriesId)
+      }
+
       // Reset form
       setForm({
         title: "",
@@ -167,6 +231,10 @@ export default function UploadPage() {
         is_animated: false,
         content_type: "movie",
       })
+
+      // Clear episodes
+      setEpisodeJson("")
+      setParsedEpisodes([])
 
       // Reload recent content
       loadRecentContent()
@@ -223,6 +291,7 @@ export default function UploadPage() {
               </div>
             </div>
 
+
             <div>
               <label className="block mb-2 text-sm font-medium">Title</label>
               <input
@@ -232,7 +301,7 @@ export default function UploadPage() {
                 onChange={handleChange}
                 className="w-full p-3 rounded bg-gray-800 text-white placeholder-gray-500"
                 required
-              />
+                />
             </div>
 
             <div>
@@ -243,7 +312,7 @@ export default function UploadPage() {
                 onChange={handleChange}
                 rows="3"
                 className="w-full p-3 rounded bg-gray-800 text-white placeholder-gray-500"
-              />
+                />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -257,7 +326,7 @@ export default function UploadPage() {
                   min="1900"
                   max="2030"
                   className="w-full p-3 rounded bg-gray-800 text-white"
-                />
+                  />
               </div>
 
               <div>
@@ -267,7 +336,7 @@ export default function UploadPage() {
                   value={form.language}
                   onChange={handleChange}
                   className="w-full p-3 rounded bg-gray-800 text-white"
-                >
+                  >
                   <option value="English">English</option>
                   <option value="Spanish">Spanish</option>
                   <option value="French">French</option>
@@ -280,6 +349,37 @@ export default function UploadPage() {
               </div>
             </div>
 
+            {/* Episode JSON Upload Section (only show for series/anime) */}
+            {(form.content_type === "series" || form.content_type === "anime") && (
+              <div className="border-t border-gray-700 pt-4">
+                <h3 className="text-lg font-bold mb-4">Episode Upload (JSON)</h3>
+                
+                <div className="mb-4">
+                  <label className="block mb-2 text-sm font-medium">Upload Episode JSON File</label>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleJsonUpload}
+                    className="w-full p-2 rounded bg-gray-800 text-white"
+                  />
+                </div>
+
+                {parsedEpisodes.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium mb-2">
+                      Parsed Episodes ({parsedEpisodes.length})
+                    </h4>
+                    <div className="max-h-40 overflow-y-auto bg-gray-800 p-2 rounded">
+                      {parsedEpisodes.map((ep, index) => (
+                        <div key={index} className="text-xs mb-1 p-1 bg-gray-700 rounded">
+                          Ep {ep.episode_number} - {ep.status} - {ep.hash_code.substring(0, 20)}...
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {form.content_type === "movie" && (
               <>
                 <div>
@@ -390,14 +490,14 @@ export default function UploadPage() {
 
             <button
               type="submit"
-              disabled={!form.title || !form.poster_url}
+              disabled={!form.title || !form.poster_url || isUploadingEpisodes}
               className={`w-full p-3 rounded font-medium mt-4 ${
-                !form.title || !form.poster_url
+                !form.title || !form.poster_url || isUploadingEpisodes
                   ? "bg-gray-700 cursor-not-allowed"
                   : "bg-red-600 hover:bg-red-700"
               }`}
             >
-              Create {form.content_type.charAt(0).toUpperCase() + form.content_type.slice(1)}
+              {isUploadingEpisodes ? "Uploading Episodes..." : `Create ${form.content_type.charAt(0).toUpperCase() + form.content_type.slice(1)}`}
             </button>
           </form>
 

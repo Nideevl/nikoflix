@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
 
         <button
           type="submit"
-          className="w-full netflix-button text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
+          className="w-full nikoflix-button text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
         >
           Send Reset Link
         </button>
