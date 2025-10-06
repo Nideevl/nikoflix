@@ -173,6 +173,8 @@
   margin-top: -100px;
   z-index: 1;
   padding-bottom: 2rem;
+  overflow: hidden;
+  padding-top: 100px;
 }
 
 /* Footer */

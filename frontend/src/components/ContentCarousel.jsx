@@ -3,197 +3,172 @@
 import * as React from "react"
 import ContentCard from "./ContentCard"
 
-function mod(n, m) {
-  return ((n % m) + m) % m
-}
+export default function ContentCarousel({ items = [] }) {
+  const baseItems = React.useMemo(() => {
+    const arr = Array.isArray(items) ? [...items] : []
+    const missing = 36 - arr.length
+    if (missing > 0) {
+      for (let i = 0; i < missing; i++) {
+        arr.push({
+          id: `dummy-${i}`,
+          title: `item[${arr.length + i}]`,
+          isDummy: true,
+        })
+      }
+    }
+    return arr
+  }, [items])
 
-function rangeWrapped(start, count, total) {
-  const out = []
-  for (let i = 0; i < count; i++) out.push(mod(start + i, total))
-  return out
-}
+  const total = baseItems.length
+  const [navIndex, setNavIndex] = React.useState(0)
+  const [hasClickedNext, setHasClickedNext] = React.useState(false)
 
-function getWindowIndices({
-  start,
-  total,
-  pageSize,
-  bufferLeft,
-  bufferRight,
-}) {
-  const leftStart = start - bufferLeft
-  const rightStart = start + pageSize
-  return [
-    ...rangeWrapped(leftStart, bufferLeft, total),
-    ...rangeWrapped(start, pageSize, total),
-    ...rangeWrapped(rightStart, bufferRight, total),
-  ]
-}
+  const [translateOffset, setTranslateOffset] = React.useState(0)
+  const [marginOffset, setMarginOffset] = React.useState(0)
+  const [isFirstShiftClick, setIsFirstShiftClick] = React.useState(true)
+  
+  // New state to track if transition is in progress
+  const [isTransitioning, setIsTransitioning] = React.useState(false)
+  
+  // New state to track hover
+  const [isHovered, setIsHovered] = React.useState(false)
 
-function resolvePageSizeByWidth(w) {
-  if (w < 480) return 2
-  if (w < 768) return 3
-  if (w < 1024) return 4
-  if (w < 1280) return 5
-  return 6
-}
+  const sliderRef = React.useRef(null)
+  const transitionTimeoutRef = React.useRef(null)
 
-export default function ContentCarousel({ items = [], title = "We Think You'll Love These" }) {
-  // If nothing passed, we'll generate dummy cards
-  const baseItems = React.useMemo(() => (Array.isArray(items) ? items : []), [items])
+  function renderIndices() {
+    const out = []
+    if (!hasClickedNext) {
+      for (let i = 0; i < 13; i++) {
+        out.push((navIndex + i) % total)
+      }
+    } else {
+      const startIndex = (navIndex - 7 + total) % total
+      for (let i = 0; i < 19; i++) {
+        out.push((startIndex + i) % total)
+      }
+    }
+    return out
+  }
 
-  // Ensure at least 36 total cards by padding with dummies
-  const total = Math.max(36, baseItems.length)
-
-  // Responsive page size
-  const [pageSize, setPageSize] = React.useState(6)
+  // Clean up timeout on unmount
   React.useEffect(() => {
-    const onResize = () => setPageSize(resolvePageSizeByWidth(window.innerWidth))
-    onResize()
-    window.addEventListener("resize", onResize)
-    return () => window.removeEventListener("resize", onResize)
+    return () => {
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current)
+      }
+    }
   }, [])
 
-  const [start, setStart] = React.useState(0)
-  const [hasMoved, setHasMoved] = React.useState(false)
-
-  const containerRef = React.useRef(null)
-  const listRef = React.useRef(null)
-
-  const BUFFER = 7
-  const bufferLeft = hasMoved ? BUFFER : 0
-  const bufferRight = BUFFER
-
-  const windowIndices = React.useMemo(
-    () =>
-      getWindowIndices({
-        start,
-        total,
-        pageSize,
-        bufferLeft,
-        bufferRight,
-      }),
-    [start, total, pageSize, bufferLeft, bufferRight],
-  )
-
-  // Align the viewport to keep the current view centered even with left buffer
-  const alignToViewport = React.useCallback(() => {
-    const el = containerRef.current
-    const list = listRef.current
-    if (!el || !list) return
-
-    const firstItem = list.querySelector("li[data-idx]")
-    const itemWidth = firstItem?.getBoundingClientRect().width || 0
-
-    // read horizontal gap from the list
-    const style = window.getComputedStyle(list)
-    const gap = Number.parseFloat(style.columnGap || "0")
-
-    const offset = bufferLeft * itemWidth + bufferLeft * gap
-    el.scrollTo({ left: offset, behavior: "auto" })
-  }, [bufferLeft])
-
-  React.useLayoutEffect(() => {
-    alignToViewport()
-  }, [alignToViewport, windowIndices])
-
-  React.useEffect(() => {
-    const onResize = () => alignToViewport()
-    window.addEventListener("resize", onResize)
-    return () => window.removeEventListener("resize", onResize)
-  }, [alignToViewport])
-
-  function goRight() {
-    setStart((s) => (((s + pageSize) % total) + total) % total)
-    if (!hasMoved) setHasMoved(true)
-  }
-
-  function goLeft() {
-    setStart((s) => (((s - pageSize) % total) + total) % total)
-  }
-
-  // Create dummy card data for missing items
-  function getItemAt(index) {
-    // Return real item if available
-    if (index < baseItems.length && baseItems[index]) {
-      return baseItems[index]
+  function startTransition() {
+    setIsTransitioning(true)
+    
+    // Clear any existing timeout
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current)
     }
-
-    // Create dummy item for missing indices
-    const n = index + 1
-    return {
-      id: `dummy-${n}`,
-      title: `Card ${n}`,
-      rating: (Math.random() * 3 + 7).toFixed(1), // Random rating between 7.0 and 10.0
-      poster_url: `/placeholder.svg?height=270&width=480&text=Card+${n}`,
-      isDummy: true
-    }
+    
+    // Set timeout to match the CSS transition duration (1000ms)
+    transitionTimeoutRef.current = setTimeout(() => {
+      setIsTransitioning(false)
+    }, 1150)
   }
 
-  const inspector = React.useMemo(() => {
-    const leftStart = start - bufferLeft
-    const rightStart = start + pageSize
-    const left = rangeWrapped(leftStart, bufferLeft, total)
-    const view = rangeWrapped(start, pageSize, total)
-    const right = rangeWrapped(rightStart, bufferRight, total)
+  function goNext() {
+    if (isTransitioning) return
+    
+    const sliderContent = sliderRef.current
+    setHasClickedNext(true)
+    setNavIndex((prev) => (prev + 6) % total)
 
-    const parts = []
-    for (const n of left) parts.push(`(${n})`)
-    parts.push(`{<${view.map((n) => `(${n})`).join("")}>}`)
-    for (const n of right) parts.push(`(${n})`)
-    return parts.join("")
-  }, [start, total, pageSize, bufferLeft, bufferRight])
+    if (sliderContent) {
+      if (isFirstShiftClick) {
+        setMarginOffset((prev) => {
+          const newOffset = prev - 240
+          sliderContent.style.marginLeft = `${newOffset}px`
+          return newOffset
+        })
+        setIsFirstShiftClick(false)
+      } else {
+        setMarginOffset((prev) => {
+          const newOffset = prev + 1427
+          sliderContent.style.marginLeft = `${newOffset}px`
+          return newOffset
+        })
+      }
+
+      setTranslateOffset((prev) => {
+        const newOffset = prev - 1427
+        sliderContent.style.transform = `translateX(${newOffset}px)`
+        return newOffset
+      })
+    }
+    
+    startTransition()
+  }
+
+  function goPrev() {
+    if (isTransitioning) return
+    
+    const sliderContent = sliderRef.current
+    setNavIndex((prev) => (prev - 6 + total) % total)
+
+    if (sliderContent) {
+      setMarginOffset((prev) => {
+        const newOffset = prev - 1427
+        sliderContent.style.marginLeft = `${newOffset}px`
+        return newOffset
+      })
+
+      setTranslateOffset((prev) => {
+        const newOffset = prev + 1427
+        sliderContent.style.transform = `translateX(${newOffset}px)`
+        return newOffset
+      })
+    }
+    
+    startTransition()
+  }
+
+  const indices = renderIndices()
 
   return (
-    <section className="relative">
-      <header className="mb-3">
-        <h2 className="text-pretty text-xl font-semibold text-foreground">{title}</h2>
-      </header>
-
-      <div
-        ref={containerRef}
-        className="overflow-x-auto scroll-smooth snap-x snap-mandatory [-webkit-overflow-scrolling:touch] scrollbar-hide"
-        aria-label="Content carousel"
-      >
-        <ul ref={listRef} className="flex gap-3 md:gap-4" role="list" aria-live="polite">
-          {windowIndices.map((n) => {
-            const item = getItemAt(n)
-            return (
-              <li
-                key={`${n}-${item.id}`}
-                data-idx={n}
-                className="group shrink-0 snap-start basis-1/2 sm:basis-1/3 md:basis-[25%] lg:basis-[20%] xl:basis-[16.666%]"
-              >
-                <article className="relative rounded-lg border border-transparent bg-card ring-0 outline-none transition-transform focus-within:ring-2 focus-within:ring-primary/40">
-                  <a href={item.href || "#"} className="block" aria-label={item.title}>
-                    <ContentCard item={item} />
-                  </a>
-                </article>
-              </li>
-            )
-          })}
-        </ul>
+    <div 
+      className={`relative group max-w-full w-full h-[170px] bg-transparent my-8 transition-all duration-300 ${
+        isHovered ? "z-40" : "z-10"
+      }`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Slider */}
+      <div className="slider-container w-full h-full bg-transparent relative pl-7.25">
+        <div
+          ref={sliderRef}
+          className="sliderContent flex flex-nowrap gap-[6px] px-5 py-2 h-full w-fit transition-transform duration-[1150ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]"
+          style={{ marginLeft: `${marginOffset}px`, transform: `translateX(${translateOffset}px)` }}
+        >
+          {indices.map((i) => (
+            <ContentCard key={baseItems[i].id} item={baseItems[i]} />
+          ))}
+        </div>
       </div>
 
-      {/* Left control: added only after first move */}
-      {hasMoved && (
+      {/* Navigation Arrows */}
+      {hasClickedNext && (
         <button
-          type="button"
-          onClick={goLeft}
-          className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full bg-secondary px-3 py-2 text-foreground shadow hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="Scroll left"
+          onClick={goPrev}
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-11 h-[150px] flex items-center justify-center bg-black/40 text-xl font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-105 hover:shadow-xl text-white"
         >
           ‹
         </button>
       )}
 
       <button
-        type="button"
-        onClick={goRight}
-        className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full bg-secondary px-3 py-2 text-foreground shadow hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Scroll right"
+        onClick={goNext}
+        className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-[150px] flex items-center justify-center bg-black/40 text-xl font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-105 hover:shadow-xl text-white"
       >
         ›
       </button>
-    </section>
+    </div>
   )
 }
