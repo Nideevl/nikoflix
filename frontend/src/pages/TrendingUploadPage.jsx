@@ -14,7 +14,7 @@ export default function TrendingUploadsPage() {
     trending_type: "movie",
     position: 1,
     video_url: "",
-    expires_at: "", // New field for expiration
+    expires_at: "",
   })
 
   const [message, setMessage] = useState("")
@@ -25,7 +25,6 @@ export default function TrendingUploadsPage() {
   const [recentTrending, setRecentTrending] = useState([])
   const [selectedContent, setSelectedContent] = useState(null)
   const [activeTab, setActiveTab] = useState("movies")
-  const [animatedOnly, setAnimatedOnly] = useState(false)
   const [isDeleting, setIsDeleting] = useState(null)
 
   const API_BASE = useMemo(
@@ -35,23 +34,45 @@ export default function TrendingUploadsPage() {
   const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
   const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_PRESET
 
-  // Calculate available positions based on current trending data
+  // Calculate available positions for each trending type separately
   const availablePositions = useMemo(() => {
     const MAX_POSITIONS = 10;
-    
+
     const occupiedPositions = recentTrending
       .filter(item => item.trending_type === form.trending_type)
       .map(item => item.position);
-    
+
     const available = [];
     for (let i = 1; i <= MAX_POSITIONS; i++) {
       if (!occupiedPositions.includes(i)) {
         available.push(i);
       }
     }
-    
+
     return available;
   }, [recentTrending, form.trending_type]);
+
+  // Group trending items by type for display
+  const trendingByType = useMemo(() => {
+    const grouped = {
+      movie: [],
+      series: [],
+      anime: []
+    };
+
+    recentTrending.forEach(item => {
+      if (grouped[item.trending_type]) {
+        grouped[item.trending_type].push(item);
+      }
+    });
+
+    // Sort each group by position
+    Object.keys(grouped).forEach(type => {
+      grouped[type].sort((a, b) => a.position - b.position);
+    });
+
+    return grouped;
+  }, [recentTrending]);
 
   useEffect(() => {
     if (window.cloudinary) {
@@ -80,21 +101,34 @@ export default function TrendingUploadsPage() {
         return
       }
 
-      const endpoint = activeTab === "movies" ? "movies" : "series"
+      let endpoint = "movies";
+      let query = search.trim();
+
+      if (activeTab === "series" || activeTab === "anime") {
+        endpoint = "series";
+      }
+
       axios
-        .get(`${API_BASE}/${endpoint}?q=${encodeURIComponent(search.trim())}`)
+        .get(`${API_BASE}/${endpoint}?q=${encodeURIComponent(query)}`)
         .then((res) => {
-          if (activeTab === "series" && animatedOnly) {
-            setSearchResults(res.data.filter(item => item.is_animated))
-          } else {
-            setSearchResults(res.data)
+          let results = res.data;
+
+          // Filter based on active tab
+          if (activeTab === "series") {
+            // Series tab: only show live-action series (is_animated = false)
+            results = results.filter(item => !item.is_animated);
+          } else if (activeTab === "anime") {
+            // Anime tab: only show animated series (is_animated = true)
+            results = results.filter(item => item.is_animated);
           }
+
+          setSearchResults(results);
         })
         .catch((err) => console.error(err))
     }, 300)
 
     return () => clearTimeout(timeoutId)
-  }, [search, API_BASE, activeTab, animatedOnly])
+  }, [search, API_BASE, activeTab])
 
   // Auto-select first available position when trending type changes
   useEffect(() => {
@@ -102,6 +136,33 @@ export default function TrendingUploadsPage() {
       setForm(prev => ({ ...prev, position: availablePositions[0] }))
     }
   }, [availablePositions, form.position])
+
+  // Reset form when tab changes
+  useEffect(() => {
+    setSelectedContent(null);
+    setSearch("");
+    setSearchResults([]);
+
+    let contentType = "movie";
+    let trendingType = "movie";
+
+    if (activeTab === "series") {
+      contentType = "series";
+      trendingType = "series";
+    } else if (activeTab === "anime") {
+      contentType = "series";
+      trendingType = "anime";
+    }
+
+    setForm(prev => ({
+      ...prev,
+      content_id: "",
+      content_type: contentType,
+      trending_type: trendingType,
+      position: 1,
+      video_url: "",
+    }));
+  }, [activeTab])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -173,6 +234,7 @@ export default function TrendingUploadsPage() {
         expires_at: "",
       }))
       setSelectedContent(null)
+      setSearchResults([])
 
       // Reload trending items to update available positions
       loadTrendingItems();
@@ -200,8 +262,8 @@ export default function TrendingUploadsPage() {
     } catch (err) {
       console.error(err)
       const errorMsg = err?.response?.data?.error || "Error removing trending item ❌"
-      setMessage(errorMsg.includes("Cloudinary") ? 
-        "Item removed but Cloudinary deletion failed. Video may still exist." : 
+      setMessage(errorMsg.includes("Cloudinary") ?
+        "Item removed but Cloudinary deletion failed. Video may still exist." :
         errorMsg)
     } finally {
       setIsDeleting(null);
@@ -210,17 +272,20 @@ export default function TrendingUploadsPage() {
 
   const selectContent = (content) => {
     setSelectedContent(content)
-    
-    // Determine content type and trending type automatically
-    const contentType = activeTab === "movies" ? "movie" : "series"
-    const trendingType = (contentType === "series" && content.is_animated) ? "anime" : contentType
-    
-    setForm(prev => ({ 
-      ...prev, 
+    setForm(prev => ({
+      ...prev,
       content_id: content.id,
-      content_type: contentType,
-      trending_type: trendingType
+      // content_type and trending_type are already set based on activeTab
     }))
+  }
+
+  const getTabLabel = (tab) => {
+    switch (tab) {
+      case "movies": return "Movies";
+      case "series": return "Series";
+      case "anime": return "Anime";
+      default: return tab;
+    }
   }
 
   return (
@@ -260,44 +325,34 @@ export default function TrendingUploadsPage() {
                 >
                   Series
                 </button>
+                <button
+                  type="button"
+                  className={`px-4 py-2 rounded ${activeTab === "anime" ? "bg-red-600" : "bg-gray-700"}`}
+                  onClick={() => setActiveTab("anime")}
+                >
+                  Anime
+                </button>
               </div>
             </div>
 
             <div>
-              <label className="block mb-2 text-sm font-medium">Search {activeTab === "movies" ? "Movies" : "Series"}</label>
+              <label className="block mb-2 text-sm font-medium">Search {getTabLabel(activeTab)}</label>
               <input
                 type="text"
-                placeholder={`Search ${activeTab}...`}
+                placeholder={`Search ${getTabLabel(activeTab).toLowerCase()}...`}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full p-3 rounded bg-gray-800 text-white placeholder-gray-500"
               />
             </div>
 
-            {activeTab === "series" && (
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="animated-only"
-                  checked={animatedOnly}
-                  onChange={(e) => setAnimatedOnly(e.target.checked)}
-                  className="mr-2"
-                />
-                <label htmlFor="animated-only" className="text-sm">
-                  Show animated series only
-                </label>
-              </div>
-            )}
-
             {selectedContent && (
               <div className="bg-gray-800 p-4 rounded-lg mb-4">
                 <h3 className="font-semibold">Selected Content:</h3>
                 <p className="text-red-500 font-medium">{selectedContent.title} ({selectedContent.release_year})</p>
-                {selectedContent.is_animated !== undefined && (
-                  <p className="text-gray-400 text-sm">
-                    Type: {selectedContent.is_animated ? "Animated Series" : "Live Action Series"}
-                  </p>
-                )}
+                <p className="text-gray-400 text-sm">
+                  Type: {activeTab === "movies" ? "Movie" : activeTab === "series" ? "Live Action Series" : "Anime Series"}
+                </p>
                 <p className="text-gray-400 text-sm">
                   Content Type: <span className="text-white">{form.content_type}</span>
                 </p>
@@ -325,11 +380,10 @@ export default function TrendingUploadsPage() {
                   <button
                     key={pos}
                     type="button"
-                    className={`p-2 rounded text-center ${
-                      parseInt(form.position) === pos 
-                        ? "bg-red-600 text-white" 
+                    className={`p-2 rounded text-center ${parseInt(form.position) === pos
+                        ? "bg-red-600 text-white"
                         : "bg-gray-700 hover:bg-gray-600"
-                    }`}
+                      }`}
                     onClick={() => setForm(prev => ({ ...prev, position: pos }))}
                   >
                     {pos}
@@ -363,13 +417,12 @@ export default function TrendingUploadsPage() {
                 type="button"
                 onClick={handleUpload}
                 disabled={!widgetReady || isUploading || !selectedContent}
-                className={`w-full px-4 py-3 rounded font-medium ${
-                  isUploading 
-                    ? "bg-gray-700 cursor-not-allowed" 
-                    : !selectedContent
+                className={`w-full px-4 py-3 rounded font-medium ${isUploading
                     ? "bg-gray-700 cursor-not-allowed"
-                    : "bg-red-600 hover:bg-red-700"
-                }`}
+                    : !selectedContent
+                      ? "bg-gray-700 cursor-not-allowed"
+                      : "bg-red-600 hover:bg-red-700"
+                  }`}
               >
                 {!selectedContent ? "Select content first" : isUploading ? "Uploading..." : "Upload Trailer"}
               </button>
@@ -389,16 +442,15 @@ export default function TrendingUploadsPage() {
             <button
               type="submit"
               disabled={!selectedContent || !form.video_url || availablePositions.length === 0}
-              className={`w-full p-3 rounded font-medium mt-4 ${
-                !selectedContent || !form.video_url || availablePositions.length === 0
+              className={`w-full p-3 rounded font-medium mt-4 ${!selectedContent || !form.video_url || availablePositions.length === 0
                   ? "bg-gray-700 cursor-not-allowed"
                   : "bg-red-600 hover:bg-red-700"
-              }`}
+                }`}
             >
-              {!selectedContent ? "Select content first" : 
-               !form.video_url ? "Upload trailer first" :
-               availablePositions.length === 0 ? "No positions available" :
-               `Add to ${form.trending_type} trending`}
+              {!selectedContent ? "Select content first" :
+                !form.video_url ? "Upload trailer first" :
+                  availablePositions.length === 0 ? "No positions available" :
+                    `Add to ${form.trending_type} trending`}
             </button>
           </form>
 
@@ -409,14 +461,13 @@ export default function TrendingUploadsPage() {
           )}
         </div>
 
-        {/* Right Panel - Search Results and Recent Items */}
+        {/* Right Panel - Search Results and Current Trending */}
         <div className="flex-1">
           {/* Search Results */}
           {searchResults.length > 0 && (
             <div className="mb-8">
               <h2 className="text-xl font-bold mb-4">
-                {activeTab === "movies" ? "Movie" : "Series"} Search Results
-                {activeTab === "series" && animatedOnly && " (Animated Only)"}
+                {getTabLabel(activeTab)} Search Results
               </h2>
               <div className="grid grid-cols-4 gap-4">
                 {searchResults.map((item) => (
@@ -425,57 +476,73 @@ export default function TrendingUploadsPage() {
                     item={item}
                     isSelected={selectedContent?.id === item.id}
                     onClick={() => selectContent(item)}
-                    showType={activeTab === "series"}
+                    showType={activeTab === "series" || activeTab === "anime"}
                   />
                 ))}
               </div>
             </div>
           )}
 
-          {/* Recent Trending Items */}
-          <div>
-            <h2 className="text-xl font-bold mb-4">Current Trending Items</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {recentTrending.map((item) => (
-                <div key={item.trending_id} className="bg-gray-900 p-4 rounded-lg relative">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-white">
-                        {item.content_type} ID {item.content_id}
-                      </h3>
-                      <p className="text-gray-400 text-sm capitalize">{item.trending_type}</p>
-                      <p className="text-gray-400 text-sm">Position: {item.position}</p>
-                      {item.expires_at && (
-                        <p className="text-gray-400 text-sm">
-                          Expires: {new Date(item.expires_at).toLocaleString()}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <a 
-                        href={item.video_url} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="text-red-500 hover:text-red-400 text-sm font-medium"
-                      >
-                        Watch
-                      </a>
-                      <button
-                        onClick={() => handleDelete(item.trending_id)}
-                        disabled={isDeleting === item.trending_id}
-                        className="text-xs bg-red-800 hover:bg-red-700 px-2 py-1 rounded text-white disabled:opacity-50"
-                      >
-                        {isDeleting === item.trending_id ? "Removing..." : "Remove"}
-                      </button>
-                    </div>
+          {/* Current Trending Items by Type */}
+          <div className="space-y-8">
+            {/* Movies Trending */}
+            <div>
+              <h2 className="text-xl font-bold mb-4 text-white">Movies Trending</h2>
+              <div className="grid grid-cols-2 gap-4">
+                {trendingByType.movie.map((item) => (
+                  <TrendingItemCard
+                    key={item.trending_id}
+                    item={item}
+                    onDelete={handleDelete}
+                    isDeleting={isDeleting === item.trending_id}
+                  />
+                ))}
+                {trendingByType.movie.length === 0 && (
+                  <div className="col-span-2 text-center py-4 text-gray-500 bg-gray-800 rounded-lg">
+                    No movies in trending
                   </div>
-                </div>
-              ))}
-              {recentTrending.length === 0 && (
-                <div className="col-span-2 text-center py-8 text-gray-500">
-                  No trending items found. Add some using the form on the left.
-                </div>
-              )}
+                )}
+              </div>
+            </div>
+
+            {/* Series Trending */}
+            <div>
+              <h2 className="text-xl font-bold mb-4 text-white">Series Trending</h2>
+              <div className="grid grid-cols-2 gap-4">
+                {trendingByType.series.map((item) => (
+                  <TrendingItemCard
+                    key={item.trending_id}
+                    item={item}
+                    onDelete={handleDelete}
+                    isDeleting={isDeleting === item.trending_id}
+                  />
+                ))}
+                {trendingByType.series.length === 0 && (
+                  <div className="col-span-2 text-center py-4 text-gray-500 bg-gray-800 rounded-lg">
+                    No series in trending
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Anime Trending */}
+            <div>
+              <h2 className="text-xl font-bold mb-4 text-white">Anime Trending</h2>
+              <div className="grid grid-cols-2 gap-4">
+                {trendingByType.anime.map((item) => (
+                  <TrendingItemCard
+                    key={item.trending_id}
+                    item={item}
+                    onDelete={handleDelete}
+                    isDeleting={isDeleting === item.trending_id}
+                  />
+                ))}
+                {trendingByType.anime.length === 0 && (
+                  <div className="col-span-2 text-center py-4 text-gray-500 bg-gray-800 rounded-lg">
+                    No anime in trending
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

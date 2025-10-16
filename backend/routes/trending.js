@@ -23,11 +23,9 @@ const pool = new Pool({
 // Helper function to extract public ID from Cloudinary URL
 function extractPublicIdFromUrl(url) {
   try {
-    // Example: https://res.cloudinary.com/demo/video/upload/v1234567/sample.mp4
-    // public_id would be "sample"
     const urlParts = url.split('/');
     const filename = urlParts[urlParts.length - 1];
-    const publicId = filename.split('.')[0]; // Remove file extension
+    const publicId = filename.split('.')[0];
     return publicId;
   } catch (error) {
     console.error('Error extracting public ID from URL:', error);
@@ -63,6 +61,10 @@ router.post("/", async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
+    // The database constraint will catch duplicates
+    if (err.code === '23505') {
+      return res.status(400).json({ error: "This content is already in trending" });
+    }
     console.error(err);
     res.status(500).send("Server error");
   }
@@ -73,12 +75,16 @@ router.put("/:id", async (req, res) => {
   try {
     const { position, expires_at } = req.body;
     const result = await pool.query(
-      "UPDATE trending SET position=$1, expires_at=$2 WHERE trending_id=$3 RETURNING *",
+      "UPDATE trending SET position=$1, expires_at=$2, updated_at=NOW() WHERE trending_id=$3 RETURNING *",
       [position, expires_at, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: "Trending item not found" });
     res.json(result.rows[0]);
   } catch (err) {
+    // The database constraint will catch duplicates if you try to change content_id/content_type
+    if (err.code === '23505') {
+      return res.status(400).json({ error: "This content is already in trending" });
+    }
     console.error(err);
     res.status(500).send("Server error");
   }
@@ -111,7 +117,6 @@ router.delete("/:id", async (req, res) => {
         }
       } catch (cloudinaryError) {
         console.warn('Cloudinary deletion failed, continuing with database deletion:', cloudinaryError);
-        // Continue with database deletion even if Cloudinary fails
       }
     }
     

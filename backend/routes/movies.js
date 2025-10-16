@@ -12,17 +12,6 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 })
 
-// Helper function to format movie ID
-const formatMovieId = (id) => `m_${id}`
-
-// Helper function to parse movie ID
-const parseMovieId = (formattedId) => {
-  if (formattedId.startsWith('m_')) {
-    return formattedId.substring(2)
-  }
-  return formattedId
-}
-
 // GET all movies or search by query
 router.get("/", async (req, res) => {
   try {
@@ -33,14 +22,8 @@ router.get("/", async (req, res) => {
           [`${q.toLowerCase()}%`]
         )
       : await pool.query("SELECT movie_id AS id, title, poster_url, wide_poster_url, release_year, language, description FROM movies ORDER BY movie_id DESC LIMIT 20")
-
-    // Format the IDs in the response
-    const formattedRows = result.rows.map(row => ({
-      ...row,
-      id: formatMovieId(row.id)
-    }))
     
-    res.json(formattedRows)
+    res.json(result.rows)
   } catch (err) {
     console.error(err)
     res.status(500).send("Server error")
@@ -50,17 +33,10 @@ router.get("/", async (req, res) => {
 // GET one movie by id
 router.get("/:id", async (req, res) => {
   try {
-    const parsedId = parseMovieId(req.params.id)
-    const result = await pool.query("SELECT * FROM movies WHERE movie_id=$1", [parsedId])
+    const result = await pool.query("SELECT * FROM movies WHERE movie_id=$1", [req.params.id])
     if (result.rows.length === 0) return res.status(404).json({ error: "Movie not found" })
     
-    // Format the ID in the response
-    const formattedRow = {
-      ...result.rows[0],
-      movie_id: formatMovieId(result.rows[0].movie_id)
-    }
-    
-    res.json(formattedRow)
+    res.json(result.rows[0])
   } catch (err) {
     console.error(err)
     res.status(500).send("Server error")
@@ -77,13 +53,7 @@ router.post("/", async (req, res) => {
       [title, description, release_year, language, poster_url, wide_poster_url, hash_code, is_premium, duration || null]
     )
     
-    // Format the ID in the response
-    const formattedRow = {
-      ...result.rows[0],
-      movie_id: formatMovieId(result.rows[0].movie_id)
-    }
-    
-    res.json(formattedRow)
+    res.json(result.rows[0])
   } catch (err) {
     console.error(err)
     res.status(500).send("Server error")
@@ -93,22 +63,15 @@ router.post("/", async (req, res) => {
 // UPDATE a movie (with duration field added)
 router.put("/:id", async (req, res) => {
   try {
-    const parsedId = parseMovieId(req.params.id)
     const { title, description, release_year, language, poster_url, wide_poster_url, hash_code, is_premium, duration } = req.body
     const result = await pool.query(
       `UPDATE movies SET title=$1, description=$2, release_year=$3, language=$4, poster_url=$5, wide_poster_url=$6, hash_code=$7, is_premium=$8, duration=$9 
        WHERE movie_id=$10 RETURNING *`,
-      [title, description, release_year, language, poster_url, wide_poster_url, hash_code, is_premium, duration || null, parsedId]
+      [title, description, release_year, language, poster_url, wide_poster_url, hash_code, is_premium, duration || null, req.params.id]
     )
     if (result.rows.length === 0) return res.status(404).json({ error: "Movie not found" })
     
-    // Format the ID in the response
-    const formattedRow = {
-      ...result.rows[0],
-      movie_id: formatMovieId(result.rows[0].movie_id)
-    }
-    
-    res.json(formattedRow)
+    res.json(result.rows[0])
   } catch (err) {
     console.error(err)
     res.status(500).send("Server error")
@@ -118,17 +81,10 @@ router.put("/:id", async (req, res) => {
 // DELETE a movie
 router.delete("/:id", async (req, res) => {
   try {
-    const parsedId = parseMovieId(req.params.id)
-    const result = await pool.query("DELETE FROM movies WHERE movie_id=$1 RETURNING *", [parsedId])
+    const result = await pool.query("DELETE FROM movies WHERE movie_id=$1 RETURNING *", [req.params.id])
     if (result.rows.length === 0) return res.status(404).json({ error: "Movie not found" })
     
-    // Format the ID in the response
-    const formattedRow = {
-      ...result.rows[0],
-      movie_id: formatMovieId(result.rows[0].movie_id)
-    }
-    
-    res.json({ message: "Movie deleted", deleted: formattedRow })
+    res.json({ message: "Movie deleted", deleted: result.rows[0] })
   } catch (err) {
     console.error(err)
     res.status(500).send("Server error")
