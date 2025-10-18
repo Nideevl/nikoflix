@@ -157,20 +157,9 @@ export default function ContentCard({
                 </>
               )}
             </div>
-
-            {/* First / Last Label */}
-            {cardType && (
-              <div
-                className={`absolute top-2 ${
-                  cardType === "Last" ? "right-2" : "left-2"
-                } z-[1100] text-white font-bold bg-black/50 px-2 py-0.5 rounded`}
-              >
-                {cardType}
-              </div>
-            )}
           </div>
         </div>
       )}
     </div>
   );
-}
+} 

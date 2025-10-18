@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import ContentCard from "./ContentCard"
+import styles from "./ContentCarousel.module.css"
 
 export default function ContentCarousel({ items = [] }) {
   const baseItems = React.useMemo(() => {
@@ -112,17 +113,15 @@ export default function ContentCarousel({ items = [] }) {
 
   return (
     <div
-      className={`relative group max-w-full w-full h-[170px] bg-transparent my-8 transition-all duration-300 ${
-        isHovered ? "z-40" : "z-10"
-      }`}
+      className={`${styles.container} ${isHovered ? styles.zHovered : styles.zNormal}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Slider */}
-      <div className="slider-container w-full h-full bg-transparent relative pl-9">
+      <div className={styles.sliderContainer}>
         <div
           ref={sliderRef}
-          className="sliderContent flex flex-nowrap gap-[6px] px-5 py-2 h-full w-fit transition-transform duration-[1000ms] ease-[cubic-bezier(0.4,0.8,0.6,1)]"
+          className={styles.sliderContent}
           style={{
             marginLeft: `${marginOffset}px`,
             transform: `translateX(${translateOffset}px)`,
@@ -147,7 +146,7 @@ export default function ContentCarousel({ items = [] }) {
       {hasClickedNext && (
         <button
           onClick={goPrev}
-          className="absolute left-0 top-1/2 -translate-y-1/2 w-13 h-[200px] flex items-center justify-center bg-black/40 text-xl font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-105 hover:shadow-xl text-white"
+          className={styles.prevButton}
         >
           ‹
         </button>
@@ -155,7 +154,7 @@ export default function ContentCarousel({ items = [] }) {
 
       <button
         onClick={goNext}
-        className="absolute right-0 top-1/2 -translate-y-1/2 w-13 h-[200px] flex items-center justify-center bg-black/40 text-xl font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-105 hover:shadow-xl text-white"
+        className={styles.nextButton}
       >
         ›
       </button>
