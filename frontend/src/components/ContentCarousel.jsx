@@ -18,7 +18,7 @@ export default function ContentCarousel({ items = [] }) {
     }
     return arr.map((item, index) => ({
       ...item,
-      position: index + 1,
+      position: index + 1, // 1-indexed positions
     }))
   }, [items])
 
@@ -33,19 +33,14 @@ export default function ContentCarousel({ items = [] }) {
   const sliderRef = React.useRef(null)
   const transitionTimeoutRef = React.useRef(null)
 
+  // 🧭 Render visible indices
   function renderIndices() {
     const out = []
     if (!hasClickedNext) {
-      // Initial state: show positions 1-13
-      for (let i = 0; i < 13; i++) {
-        out.push((navIndex + i) % total)
-      }
+      for (let i = 0; i < 13; i++) out.push((navIndex + i) % total)
     } else {
-      // After navigation: show enough items to fill the carousel
       const startIndex = (navIndex - 1 + total) % total
-      for (let i = 0; i < 19; i++) {
-        out.push((startIndex + i) % total)
-      }
+      for (let i = 0; i < 19; i++) out.push((startIndex + i) % total)
     }
     return out
   }
@@ -105,7 +100,7 @@ export default function ContentCarousel({ items = [] }) {
       })
       setTranslateOffset((prev) => {
         const newOffset = prev + 1412
-        sliderContent.style.transform = `translateX(${newOffset}px`
+        sliderContent.style.transform = `translateX(${newOffset}px)`
         return newOffset
       })
     }
@@ -113,35 +108,13 @@ export default function ContentCarousel({ items = [] }) {
   }
 
   const indices = renderIndices()
-  const currentItems = indices.map(i => baseItems[i])
-
-  // Find which 6 positions should be wrapped
-  const getWrappedPositions = () => {
-    if (!hasClickedNext) {
-      // Initial state: positions 1-6 are wrapped
-      return [1, 2, 3, 4, 5, 6]
-    } else {
-      // Calculate which 6 positions should be wrapped based on navIndex
-      const startPosition = (navIndex + 7) % total || total
-      const wrappedPositions = []
-      for (let i = 0; i < 6; i++) {
-        wrappedPositions.push((startPosition + i - 1) % total + 1)
-      }
-      return wrappedPositions
-    }
-  }
-
-  const wrappedPositions = getWrappedPositions()
-
-  // Helper function to check if a position should be wrapped
-  const shouldWrap = (position) => {
-    return wrappedPositions.includes(position)
-  }
+  const currentItems = indices.map((i) => baseItems[i])
 
   return (
     <div
-      className={`relative group max-w-full w-full h-[170px] bg-transparent my-8 transition-all duration-300 ${isHovered ? "z-40" : "z-10"
-        }`}
+      className={`relative group max-w-full w-full h-[170px] bg-transparent my-8 transition-all duration-300 ${
+        isHovered ? "z-40" : "z-10"
+      }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -150,37 +123,20 @@ export default function ContentCarousel({ items = [] }) {
         <div
           ref={sliderRef}
           className="sliderContent flex flex-nowrap gap-[6px] px-5 py-2 h-full w-fit transition-transform duration-[1000ms] ease-[cubic-bezier(0.4,0.8,0.6,1)]"
-          style={{ marginLeft: `${marginOffset}px`, transform: `translateX(${translateOffset}px)` }}
+          style={{
+            marginLeft: `${marginOffset}px`,
+            transform: `translateX(${translateOffset}px)`,
+          }}
         >
-          {/* Render all cards, dynamically wrapping the appropriate ones */}
-          {currentItems.map((item, index, array) => {
+          {currentItems.map((item) => {
             const position = item.position
-            
-            // Check if this is the start of a wrapped section
-            if (wrappedPositions[0] === position) {
-              return (
-                <div key={item.id} className="first-six-cards-wrapper flex flex-nowrap gap-[6px]">
-                  {wrappedPositions.map(wrapPos => {
-                    const wrapItem = array.find(item => item.position === wrapPos)
-                    return wrapItem ? (
-                      <div key={wrapItem.id} data-card-position={wrapItem.position}>
-                        <ContentCard item={wrapItem} position={wrapItem.position} />
-                      </div>
-                    ) : null
-                  })}
-                </div>
-              )
-            }
-            
-            // Skip items that are part of the wrapped section (they're already rendered above)
-            if (wrappedPositions.includes(position)) {
-              return null
-            }
-            
-            // Regular unwrapped item
+            let cardType = ""
+            if ((position - 1) % 6 === 0) cardType = "First"
+            else if (position % 6 === 0) cardType = "Last"
+
             return (
               <div key={item.id} data-card-position={position}>
-                <ContentCard item={item} position={position} />
+                <ContentCard item={item} position={position} cardType={cardType} />
               </div>
             )
           })}

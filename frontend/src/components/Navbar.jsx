@@ -6,9 +6,19 @@ export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchQuery, setSearchQuery] = useState("")
-  const [contentType, setContentType] = useState("movies") // Default to movies
+  const [contentType, setContentType] = useState("movies")
+  const [scrolled, setScrolled] = useState(false)
 
-  // Extract query and type from URL when component mounts or location changes
+  // Detect scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50) // Adjust threshold as needed
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  // Extract query and type from URL
   useEffect(() => {
     if (location.pathname === "/search") {
       const searchParams = new URLSearchParams(location.search)
@@ -30,24 +40,17 @@ export default function Navbar() {
   const handleSearchChange = (e) => {
     const value = e.target.value
     setSearchQuery(value)
-    
-    // Immediately navigate based on search input
     if (value.trim()) {
       navigate(`/search?q=${encodeURIComponent(value)}&type=${contentType}`)
     } else {
-      // If search is empty, stay on browse page but keep the content type
       navigate(`/browse?type=${contentType}`)
     }
   }
 
   const handleContentTypeChange = (type) => {
     setContentType(type)
-    
-    // Update the URL with the new content type
     if (location.pathname === "/search" && searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery)}&type=${type}`)
-    } else if (location.pathname === "/browse") {
-      navigate(`/browse?type=${type}`)
     } else {
       navigate(`/browse?type=${type}`)
     }
@@ -63,17 +66,21 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="fixed top-0 w-full bg-gradient-to-b from-black to-transparent z-50 p-4">
+    <nav
+      className={`fixed top-0 w-full z-150 px-8 py-4 transition-all duration-500 ${
+        scrolled
+          ? "bg-black shadow-md" // Solid black when scrolled
+          : "bg-gradient-to-b from-black/70 to-white/0" // Smooth gradient at top
+      }`}
+    >
       <div className="flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center space-x-8">
           <h1 className="text-red-600 text-2xl font-bold">NIKOFLIX</h1>
-          
+
           {/* Navigation Links */}
           <div className="hidden md:flex space-x-6">
             <a href="/browse" className="hover:text-gray-400 transition">Home</a>
-            
-            {/* Content Type Filters */}
             <button
               onClick={() => handleContentTypeChange("movies")}
               className={`hover:text-gray-400 transition ${
@@ -98,14 +105,12 @@ export default function Navbar() {
             >
               Anime
             </button>
-            
             <a href="#" className="hover:text-gray-400 transition">My List</a>
           </div>
         </div>
 
-        {/* Search and User Menu */}
+        {/* Search and User */}
         <div className="flex items-center space-x-4">
-          {/* Search Bar */}
           <form onSubmit={handleSearchSubmit} className="relative">
             <input
               type="text"
@@ -130,7 +135,6 @@ export default function Navbar() {
             </svg>
           </form>
 
-          {/* User Profile */}
           <div className="w-8 h-8 bg-red-600 rounded-md flex items-center justify-center">
             <span className="text-sm font-semibold">U</span>
           </div>

@@ -1,8 +1,11 @@
+
+
 .container {
   min-height: 100vh;
   background: linear-gradient(135deg, #141414 0%, #000000 100%);
   color: #fff;
   position: relative;
+  margin-top: -80px;
 }
 
 /* Loading Styles */
@@ -70,7 +73,7 @@
 /* Hero Banner */
 .heroBanner {
   position: relative;
-  height: 80vh;
+  height: 100vh;
   min-height: 600px;
   background-size: cover;
   background-position: center;
@@ -94,6 +97,7 @@
   max-width: 600px;
   margin-left: 4%;
   z-index: 2;
+  margin-bottom: 8%;
 }
 
 .heroTitle {
@@ -170,8 +174,8 @@
 /* Content Main */
 .contentMain {
   position: relative;
-  margin-top: -100px;
-  z-index: 1;
+  margin-top: -25vh;
+  z-index: 100;
   padding-bottom: 2rem;
   overflow: hidden;
   padding-top: 100px;
@@ -277,18 +281,6 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-.heroBanner {
-  position: relative;
-  width: 100%;
-  height: 90vh;
-  overflow: hidden;
-  color: white;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-start;
-  padding: 4rem;
-}
-
 .heroVideo {
   position: absolute;
   top: 0;
@@ -317,7 +309,7 @@ button:focus-visible {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.9));
+  background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7));
   z-index: 1;
 }
 
@@ -388,49 +380,11 @@ button:focus-visible {
   height: 20px;
 }
 
-/* Hero Video Styles */
-.heroVideo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
 /* Make sure hero banner has relative positioning */
 .heroBanner {
   position: relative;
   /* your existing heroBanner styles */
-}
-
-/* Audio Control Button */
-.audioButton {
-  position: absolute;
-  right: 20px;
-  bottom: 20px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  z-index: 10;
-}
-
-.audioButton:hover {
-  background: rgba(0, 0, 0, 0.8);
-  transform: scale(1.1);
-}
-
-.audioButton svg {
-  width: 20px;
-  height: 20px;
-}
+} 
 
 /* Replay Button */
 .replayButton {
@@ -460,23 +414,6 @@ button:focus-visible {
   height: 24px;
 }
 
-/* Hero Video Styles */
-.heroVideo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-/* Make sure hero banner has relative positioning */
-.heroBanner {
-  position: relative;
-  /* your existing heroBanner styles */
-}
-
-/* User Interaction Modal Styles */
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -630,6 +567,5 @@ button:focus-visible {
   align-items: flex-end;
   justify-content: flex-end;
   padding: 80px 40px;
-  z-index: 5;
+  z-index: 15;
 }
-
