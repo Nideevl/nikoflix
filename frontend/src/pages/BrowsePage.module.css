@@ -1,9 +1,11 @@
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #141414 0%, #000000 100%);
+  background: #141414;
   color: #fff;
   position: relative;
   margin-top: -80px;
+  overflow-x: hidden;
+
 }
 
 /* Loading Styles */
@@ -75,32 +77,47 @@
 
 /* Hero Banner */
 .heroBanner {
+  background-color: #000;
+  margin-bottom: 20px;
+  padding-bottom: 40%;
   position: relative;
-  height: 100vh;
-  min-height: 600px;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: 4rem;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  z-index: 1;
+}
+
+.heroBanner .heroBannerRow {
+  background-color: #000;
+  height: 56.25vw;
+  position: absolute;
+  width: 100%;
+  z-index: 0;
 }
 
 .heroOverlay {
+  background: linear-gradient(77deg, rgba(0, 0, 0, .6), transparent 85%);
+  bottom: 0;
+  left: 0;
+  opacity: 1;
   position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, #000 0%, transparent 50%),
-    linear-gradient(to right, #000 0%, transparent 30%),
-    linear-gradient(to left, #000 0%, transparent 30%);
-  pointer-events: none;
+  right: 26.09%;
+  top: 0;
+  z-index: 1;
+  transition: opacity .5s;
 }
 
-.heroContent {
-  position: relative;
-  max-width: 600px;
-  margin-left: 4%;
-  z-index: 2;
-  margin-bottom: 8%;
+ .heroBanner .heroContent {
+  bottom: 15%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  left: 4%;
+  position: absolute;
+  top: 0;
+  width: 45%;
+  z-index: 10;
 }
 
 .heroTitle {
@@ -176,7 +193,7 @@
 /* Content Main */
 .contentMain {
   position: relative;
-  margin-top: -20vh;
+  margin-top: -30vh;
   z-index: 200;
   padding-bottom: 2rem;
   overflow: hidden;
@@ -195,10 +212,6 @@
 
 /* Responsive Design */
 @media (max-width: 1024px) {
-  .heroBanner {
-    height: 70vh;
-    min-height: 500px;
-  }
 
   .heroTitle {
     font-size: 3rem;
@@ -210,17 +223,6 @@
 }
 
 @media (max-width: 768px) {
-  .heroBanner {
-    height: 60vh;
-    min-height: 400px;
-    padding-bottom: 2rem;
-  }
-
-  .heroContent {
-    margin-left: 2%;
-    max-width: 90%;
-  }
-
   .heroTitle {
     font-size: 2.5rem;
   }
@@ -242,11 +244,6 @@
 }
 
 @media (max-width: 480px) {
-  .heroBanner {
-    height: 50vh;
-    min-height: 300px;
-    padding-bottom: 1.5rem;
-  }
 
   .heroTitle {
     font-size: 2rem;
@@ -306,19 +303,31 @@ button:focus-visible {
 }
 
 .heroOverlay {
-  position: absolute;
-  top: 0;
+  background: linear-gradient(77deg, rgba(0, 0, 0, .6), transparent 85%);
+  bottom: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.7));
-  z-index: 1;
+  opacity: 1;
+  position: absolute;
+  right: 26.09%;
+  top: 0;
+  transition: opacity .5s;
 }
 
-.heroContent {
-  position: relative;
-  z-index: 2;
-  max-width: 700px;
+.shadeOverlay {
+  background-color: transparent;
+  background-image: linear-gradient(180deg, hsla(0, 0%, 8%, 0) 0, hsla(0, 0%, 8%, .15) 15%, hsla(0, 0%, 8%, .35) 29%, hsla(0, 0%, 8%, .58) 44%, #141414 68%, #141414);
+  background-position: 0 top;
+  background-repeat: repeat-x;
+  background-size: 100% 100%;
+  bottom: -1px;
+  height: 14.7vw;
+  opacity: 1;
+  top: auto;
+  width: 100%;
+  left: 0;
+  position: absolute;
+  right: 0;
+  z-index: 8;
 }
 
 .heroTitle {
@@ -380,12 +389,6 @@ button:focus-visible {
 .audioButton svg {
   width: 20px;
   height: 20px;
-}
-
-/* Make sure hero banner has relative positioning */
-.heroBanner {
-  position: relative;
-  /* your existing heroBanner styles */
 }
 
 /* Replay Button */
@@ -553,7 +556,7 @@ button:focus-visible {
 }
 
 .controlButton:hover {
-  background: rgba(255, 255, 255, 0.3); 
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .completedOverlay {

@@ -3,6 +3,7 @@
 import * as React from "react"
 import ContentCard from "./ContentCard"
 import styles from "./ContentCarousel.module.css"
+import { ChevronRight, ChevronLeft } from "lucide-react"
 
 export default function ContentCarousel({ items = [] }) {
   const baseItems = React.useMemo(() => {
@@ -57,7 +58,7 @@ export default function ContentCarousel({ items = [] }) {
     if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current)
     transitionTimeoutRef.current = setTimeout(() => {
       setIsTransitioning(false)
-    }, 1150)
+    }, 1000)
   }
 
   function goNext() {
@@ -113,7 +114,7 @@ export default function ContentCarousel({ items = [] }) {
 
   return (
     <div
-      className={`${styles.container} ${isHovered ? styles.zHovered : styles.zNormal}`}
+      className={`${styles.carousel} ${isHovered ? styles.zHovered : styles.zNormal}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -148,16 +149,16 @@ export default function ContentCarousel({ items = [] }) {
           onClick={goPrev}
           className={styles.prevButton}
         >
-          ‹
+          <ChevronLeft className={styles.shiftUp}/>
         </button>
       )}
 
       <button
         onClick={goNext}
         className={styles.nextButton}
-      >
-        ›
-      </button>
+        >
+          <ChevronRight size={35} strokeWidth={2} className={styles.shiftUp}/>
+        </button>
     </div>
   )
 }

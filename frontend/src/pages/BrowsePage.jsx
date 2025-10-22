@@ -370,6 +370,7 @@ export default function BrowsePage() {
       )}
 
       <section className={styles.heroBanner}>
+        <div className={styles.heroBannerRow}>
         {featuredTrendingVideo && showVideo && !videoCompleted ? (
           <>
             <video
@@ -396,8 +397,9 @@ export default function BrowsePage() {
             />
           </>
         )}
-
+        <div className={styles.shadeOverlay}></div>
         <div className={styles.heroOverlay}></div>
+        </div>
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
             {featuredDetails?.title || `Featured ${contentType.charAt(0).toUpperCase() + contentType.slice(1)}`}
@@ -419,11 +421,9 @@ export default function BrowsePage() {
         </div>
       </section>
 
-      <main className={styles.contentMain}>
-        {rows.map((row, index) => (
-          <ContentCarousel key={`${row.title}-${index}`} title={row.title} items={row.content} />
-        ))}
-      </main>
+      {rows.map((row, index) => (
+        <ContentCarousel key={`${row.title}-${index}`} title={row.title} items={row.content} />
+      ))}
 
       <footer className={styles.footer}>
         <p>© 2024 Netflix Clone. This is a demo project for educational purposes.</p>

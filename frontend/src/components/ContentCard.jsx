@@ -36,9 +36,8 @@ export default function ContentCard({
     >
       {/* Normal Card */}
       <div
-        className={`relative w-full rounded-md overflow-hidden shadow-md ${
-          isSelected ? "ring-2 ring-red-500" : ""
-        }`}
+        className={`relative w-full rounded-md overflow-hidden shadow-md ${isSelected ? "ring-2 ring-red-500" : ""
+          }`}
       >
         {item.poster_url && !imgError ? (
           <img
@@ -48,8 +47,7 @@ export default function ContentCard({
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="flex items-center justify-center w-full h-[150px] bg-gray-800 text-gray-300 text-sm">
-            No Image
+          <div className="flex items-center justify-center w-full h-[150px] bg-[#222] bg-gradient-to-t from-black to-transparent text-sm">
           </div>
         )}
       </div>
@@ -84,8 +82,8 @@ export default function ContentCard({
               cardType === "First"
                 ? "left center"
                 : cardType === "Last"
-                ? "right center"
-                : "center center",
+                  ? "right center"
+                  : "center center",
 
             transform: active ? "scale(1.1)" : "scale(1)",
             transition: "transform 150ms ease-in-out, left 150ms ease-in-out",
@@ -108,15 +106,14 @@ export default function ContentCard({
                 onError={() => setImgError(true)}
               />
             ) : (
-              <div className="flex items-center justify-center w-full h-full bg-gray-800 text-gray-300 text-sm">
-                No Image
-              </div>
+          <div className="flex items-center justify-center w-full h-[150px] bg-[#131313] text-sm">
+          </div>
             )}
           </div>
 
           {/* Info */}
           <div
-            className="p-4 bg-[#181818]"
+            className="bg-[#181818] p-4"
             style={{
               animationName: active ? "card-cont-enter" : "card-cont-exit",
               animationDuration: "0.1s",

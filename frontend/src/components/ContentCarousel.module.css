@@ -1,11 +1,13 @@
-.container {
+.carousel {
   position: relative;
   max-width: 100%;
   width: 100%;
   height: 170px;
   background: transparent;
-  margin: 2rem 0;
-  transition: all 0.3s;
+  transition : transform .54s cubic-bezier(.5,0,.1,1) 0s;
+  box-sizing: border-box;
+  margin: 3vw 0;
+  padding: 0;
 }
 
 .zHovered {
@@ -37,30 +39,33 @@
 .prevButton,
 .nextButton {
   position: absolute;
-  top: 50%;
+  top: 57%;
   transform: translateY(-50%);
   width: 3.25rem;
-  height: 200px;
+  height: 180px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.4);
+  background: hsla(0,0%,8%,.5);
   font-size: 1.25rem;
   font-weight: bold;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
   opacity: 0;
   transition: all 0.3s;
   color: white;
+  
 }
 
-.prevButton:hover,
-.nextButton:hover {
-  transform: translateY(-50%) scale(1.05);
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+.shiftUp{
+  transition: all 0.1s;
+  margin-top: -15px;
 }
 
-.container:hover .prevButton,
-.container:hover .nextButton {
+.nextButton:hover .shiftUp,
+.prevButton:hover .shiftUp {
+  transform: scale(1.5);
+}
+.carousel:hover .prevButton,
+.carousel:hover .nextButton {
   opacity: 1;
 }
 
