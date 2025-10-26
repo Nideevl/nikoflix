@@ -70,7 +70,7 @@ export default function ContentCard({
             width: "232px",
             height: "250px",
             animationName: active ? "card" : "card-exit",
-            animationDuration: "0.15s",
+            animationDuration: active ? "0.3s" : "0.5s",
             animationFillMode: "forwards",
             animationTimingFunction: "cubic-bezier(0.25, 0.1, 0.25, 1.0)",
 

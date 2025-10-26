@@ -56,13 +56,13 @@
 }
 
 .shiftUp{
-  transition: all 0.1s;
   margin-top: -15px;
 }
 
 .nextButton:hover .shiftUp,
 .prevButton:hover .shiftUp {
-  transform: scale(1.5);
+  transition: all 0.1s;
+  transform: scale(1.25);
 }
 .carousel:hover .prevButton,
 .carousel:hover .nextButton {

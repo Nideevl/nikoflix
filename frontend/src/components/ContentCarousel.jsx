@@ -149,7 +149,7 @@ export default function ContentCarousel({ items = [] }) {
           onClick={goPrev}
           className={styles.prevButton}
         >
-          <ChevronLeft className={styles.shiftUp}/>
+          <ChevronLeft size={35} strokeWidth={2} className={styles.shiftUp}/>
         </button>
       )}
 

@@ -5,10 +5,8 @@ import ContentCarousel from "../components/ContentCarousel"
 import { Volume2, VolumeX, RotateCcw } from "lucide-react"
 import styles from "./BrowsePage.module.css"
 
-
 export default function BrowsePage() {
   const [searchParams] = useSearchParams()
-  const contentType = searchParams.get("type") || "movies"
   const [trending, setTrending] = useState([])
   const [movies, setMovies] = useState([])
   const [series, setSeries] = useState([])
@@ -20,6 +18,9 @@ export default function BrowsePage() {
   const [showUserModal, setShowUserModal] = useState(false)
   const [videoCompleted, setVideoCompleted] = useState(false)
   const [featuredDetails, setFeaturedDetails] = useState(null)
+  const [userInteracted, setUserInteracted] = useState(false)
+
+  const contentType = searchParams.get("type") || "movies"
   const videoRef = useRef(null)
   const modalRef = useRef(null)
   const currentTimeRef = useRef(0)
@@ -64,9 +65,9 @@ export default function BrowsePage() {
 
       try {
         let apiUrl = ""
-        if (trendingItem.content_type === 'movie') {
+        if (trendingItem.content_type === "movie") {
           apiUrl = `http://localhost:5000/api/movies/${trendingItem.content_id}`
-        } else if (trendingItem.content_type === 'series') {
+        } else if (trendingItem.content_type === "series") {
           apiUrl = `http://localhost:5000/api/series/${trendingItem.content_id}`
         }
 
@@ -97,34 +98,22 @@ export default function BrowsePage() {
       } else {
         if (showVideo && !isMuted && currentTimeRef.current > 0 && !videoCompleted) {
           videoRef.current.currentTime = currentTimeRef.current
-          videoRef.current.play().catch((error) => {
-            console.log("Autoplay prevented:", error)
-          })
+          videoRef.current.play().catch((error) => console.log("Autoplay prevented:", error))
         }
       }
     }
 
     document.addEventListener("visibilitychange", handleVisibilityChange)
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange)
-    }
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange)
   }, [showVideo, isMuted, videoCompleted])
 
   useEffect(() => {
     if (!videoRef.current || !showVideo || videoCompleted) return
-
     const updateCurrentTime = () => {
-      if (videoRef.current) {
-        currentTimeRef.current = videoRef.current.currentTime
-      }
+      if (videoRef.current) currentTimeRef.current = videoRef.current.currentTime
     }
-
     const interval = setInterval(updateCurrentTime, 1000)
-
-    return () => {
-      clearInterval(interval)
-    }
+    return () => clearInterval(interval)
   }, [showVideo, videoCompleted])
 
   useEffect(() => {
@@ -153,14 +142,16 @@ export default function BrowsePage() {
 
   useEffect(() => {
     if (showVideo && !videoCompleted && videoRef.current) {
-      console.log("🎬 Auto-playing video")
+
+      const isReplay = currentTimeRef.current === 0 && videoCompleted === false
+      const delay = isReplay ? 0 : 3000
+
       const playTimer = setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.play().catch((error) => {
-            console.log("Autoplay prevented:", error)
-          })
-        }
-      }, 100)
+        videoRef.current
+          ?.play()
+          .catch((error) => console.log("Autoplay prevented:", error))
+      }, delay)
+
       return () => clearTimeout(playTimer)
     }
   }, [showVideo, videoCompleted])
@@ -179,15 +170,10 @@ export default function BrowsePage() {
   }
 
   const getFeaturedTrendingItem = () => {
-    if (selectedTrendingItemRef.current) {
-      return selectedTrendingItemRef.current
-    }
+    if (selectedTrendingItemRef.current) return selectedTrendingItemRef.current
 
     const currentTypeTrending = getTrendingForCurrentType()
-
-    if (currentTypeTrending.length === 0) {
-      return null
-    }
+    if (currentTypeTrending.length === 0) return null
 
     const randomIndex = Math.floor(Math.random() * currentTypeTrending.length)
     const randomTrendingItem = currentTypeTrending[randomIndex]
@@ -199,25 +185,35 @@ export default function BrowsePage() {
   const featuredTrendingItem = getFeaturedTrendingItem()
   const featuredTrendingVideo = featuredTrendingItem?.video_url || null
 
-  // Reset when contentType changes
   useEffect(() => {
+
     selectedTrendingItemRef.current = null
     setFeaturedDetails(null)
-  }, [contentType])
 
-  useEffect(() => {
-    if (!loading && featuredTrendingVideo) {
+    setVideoCompleted(false)
+    setShowVideo(false)
+    currentTimeRef.current = 0
+
+    if (userInteracted) {
       const timer = setTimeout(() => {
-        setShowUserModal(true)
-      }, 1000)
+        setShowVideo(true)
+      }, 3000)
+
       return () => clearTimeout(timer)
     }
-  }, [loading, featuredTrendingVideo])
+  }, [contentType, userInteracted])
+
+  useEffect(() => {
+    if (!loading && featuredTrendingVideo && !userInteracted) {
+      const timer = setTimeout(() => setShowUserModal(true), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [loading, featuredTrendingVideo, userInteracted])
 
   const handleUserSelection = (selectionType) => {
-    if (modalRef.current) {
-      modalRef.current.style.transform = "translateY(100%)"
-    }
+    setUserInteracted(true)
+
+    if (modalRef.current) modalRef.current.style.transform = "translateY(100%)"
 
     setTimeout(() => {
       setShowUserModal(false)
@@ -240,14 +236,16 @@ export default function BrowsePage() {
   }
 
   const handleRetryVideo = () => {
-
     if (videoRef.current) {
       videoRef.current.currentTime = 0
       currentTimeRef.current = 0
     }
-
     setVideoCompleted(false)
     setShowVideo(true)
+
+    setTimeout(() => {
+      videoRef.current?.play().catch((error) => console.log("Autoplay prevented:", error))
+    }, 100)
   }
 
   const handleVideoError = () => {
@@ -257,8 +255,6 @@ export default function BrowsePage() {
   }
 
   const renderControlButtons = () => {
-    console.log("🎮 Rendering control buttons:", { videoCompleted, showVideo })
-
     return (
       <div className={styles.controlButtons}>
         {videoCompleted ? (
@@ -371,34 +367,34 @@ export default function BrowsePage() {
 
       <section className={styles.heroBanner}>
         <div className={styles.heroBannerRow}>
-        {featuredTrendingVideo && showVideo && !videoCompleted ? (
-          <>
-            <video
-              ref={videoRef}
-              className={styles.heroVideo}
-              src={featuredTrendingVideo}
-              autoPlay
-              loop={false}
-              muted={isMuted}
-              playsInline
-              onError={handleVideoError}
-              poster={featuredDetails?.wide_poster_url || "/cinematic-movie-scene.png"}
-            />
-          </>
-        ) : (
-          <>
-            <div
-              className={styles.heroImage}
-              style={{
-                backgroundImage: featuredDetails?.wide_poster_url
-                  ? `url('${featuredDetails.wide_poster_url}')`
-                  : "url('/cinematic-movie-scene.png')",
-              }}
-            />
-          </>
-        )}
-        <div className={styles.shadeOverlay}></div>
-        <div className={styles.heroOverlay}></div>
+          {featuredTrendingVideo && showVideo && !videoCompleted ? (
+            <>
+              <video
+                ref={videoRef}
+                className={styles.heroVideo}
+                src={featuredTrendingVideo}
+                autoPlay
+                loop={false}
+                muted={isMuted}
+                playsInline
+                onError={handleVideoError}
+                poster={featuredDetails?.wide_poster_url || "/cinematic-movie-scene.png"}
+              />
+            </>
+          ) : (
+            <>
+              <div
+                className={styles.heroImage}
+                style={{
+                  backgroundImage: featuredDetails?.wide_poster_url
+                    ? `url('${featuredDetails.wide_poster_url}')`
+                    : "url('/cinematic-movie-scene.png')",
+                }}
+              />
+            </>
+          )}
+          <div className={styles.shadeOverlay}></div>
+          <div className={styles.heroOverlay}></div>
         </div>
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
